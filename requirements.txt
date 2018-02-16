@@ -1,0 +1,37 @@
+# install scipy
+numpy
+scipy
+matplotlib
+
+# latest ipython 6.0+ does not support python 2.7
+ipython
+
+jupyter
+pandas
+sympy
+nose
+
+# install pillow for preprocessing other than png image
+pillow
+
+opencv-python
+
+# from docker image
+# docker pull udacity/carnd-term1-starter-kit
+
+# opencv3, same as opencv-python
+scikit-learn
+scikit-image
+
+h5py
+eventlet
+flask-socketio
+seaborn
+
+ffmpeg-normalize
+imageio==2.1.2
+pyqt5
+moviepy
+tensorflow-gpu
+tensorflow==0.12.1
+keras==1.2.1
