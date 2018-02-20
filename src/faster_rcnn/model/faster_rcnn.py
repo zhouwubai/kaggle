@@ -27,7 +27,9 @@ class FasterRCNN(nn.Module):
         in the RoIs and improve localizations.
 
     Each stage is carried out by one of the callable
-    :class:`torch.nn.Module` objects :obj:`feature`, :obj:`rpn` and :obj:`head`.
+    :class:`torch.nn.Module` objects
+    :obj:`feature`,
+    :obj:`rpn` and :obj:`head`.
 
     There are two functions :meth:`predict` and :meth:`__call__` to conduct
     object detection.
@@ -52,7 +54,8 @@ class FasterRCNN(nn.Module):
             :class:`model.region_proposal_network.RegionProposalNetwork`.
             Please refer to the documentation found there.
         head (nn.Module): A module that takes
-            a BCHW variable, RoIs and batch indices for RoIs. This returns class
+            a BCHW variable, RoIs and batch indices for RoIs.
+            This returns class
             dependent localization paramters and class scores.
         loc_normalize_mean (tuple of four floats): Mean values of
             localization estimates.
@@ -62,9 +65,8 @@ class FasterRCNN(nn.Module):
     """
 
     def __init__(self, extractor, rpn, head,
-                loc_normalize_mean = (0., 0., 0., 0.),
-                loc_normalize_std = (0.1, 0.1, 0.2, 0.2)
-    ):
+                 loc_normalize_mean=(0., 0., 0., 0.),
+                 loc_normalize_std=(0.1, 0.1, 0.2, 0.2)):
         super(FasterRCNN, self).__init__()
         self.extractor = extractor
         self.rpn = rpn
@@ -176,7 +178,7 @@ class FasterRCNN(nn.Module):
         score = np.concatenate(score, axis=0).astype(np.float32)
         return bbox, label, score
 
-    def predict(self, imgs,sizes=None,visualize=False):
+    def predict(self, imgs, sizes=None, visualize=False):
         """Detect objects from images.
 
         This method predicts objects for each image.
@@ -215,12 +217,13 @@ class FasterRCNN(nn.Module):
                 prepared_imgs.append(img)
                 sizes.append(size)
         else:
-             prepared_imgs = imgs 
+            prepared_imgs = imgs
         bboxes = list()
         labels = list()
         scores = list()
         for img, size in zip(prepared_imgs, sizes):
-            img = t.autograd.Variable(at.totensor(img).float()[None], volatile=True)
+            img = t.autograd.Variable(at.totensor(img).float()[None],
+                                      volatile=True)
             scale = img.shape[3] / size[1]
             roi_cls_loc, roi_scores, rois, _ = self(img, scale=scale)
             # We are assuming that batch size is 1.
@@ -262,7 +265,7 @@ class FasterRCNN(nn.Module):
 
     def get_optimizer(self):
         """
-        return optimizer, It could be overwriten if you want to specify 
+        return optimizer, It could be overwriten if you want to specify
         special optimizer
         """
         lr = opt.lr
@@ -270,9 +273,11 @@ class FasterRCNN(nn.Module):
         for key, value in dict(self.named_parameters()).items():
             if value.requires_grad:
                 if 'bias' in key:
-                    params += [{'params': [value], 'lr': lr * 2, 'weight_decay': 0}]
+                    params += [{'params': [value], 'lr': lr * 2,
+                                'weight_decay': 0}]
                 else:
-                    params += [{'params': [value], 'lr': lr, 'weight_decay': opt.weight_decay}]
+                    params += [{'params': [value], 'lr': lr,
+                                'weight_decay': opt.weight_decay}]
         if opt.use_adam:
             self.optimizer = t.optim.Adam(params)
         else:

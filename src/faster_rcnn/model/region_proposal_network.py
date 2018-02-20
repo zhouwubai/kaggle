@@ -1,6 +1,5 @@
 import numpy as np
 from torch.nn import functional as F
-import torch as t
 from torch import nn
 
 from model.utils.bbox_tools import generate_anchor_base
@@ -78,7 +77,8 @@ class RegionProposalNetwork(nn.Module):
                 reading them from files.
 
         Returns:
-            (~torch.autograd.Variable, ~torch.autograd.Variable, array, array, array):
+            (~torch.autograd.Variable, ~torch.autograd.Variable,
+             array, array, array):
 
             This is a tuple of five following values.
 
@@ -155,8 +155,8 @@ def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
 
     A = anchor_base.shape[0]
     K = shift.shape[0]
-    anchor = anchor_base.reshape((1, A, 4)) + \
-             shift.reshape((1, K, 4)).transpose((1, 0, 2))
+    anchor = anchor_base.reshape((1, A, 4)) +\
+        shift.reshape((1, K, 4)).transpose((1, 0, 2))
     anchor = anchor.reshape((K * A, 4)).astype(np.float32)
     return anchor
 
@@ -193,7 +193,8 @@ def normal_init(m, mean, stddev, truncated=False):
     """
     # x is a parameter
     if truncated:
-        m.weight.data.normal_().fmod_(2).mul_(stddev).add_(mean)  # not a perfect approximation
+        # not a perfect approximation
+        m.weight.data.normal_().fmod_(2).mul_(stddev).add_(mean)
     else:
         m.weight.data.normal_(mean, stddev)
         m.bias.data.zero_()

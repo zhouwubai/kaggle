@@ -1,7 +1,8 @@
 from collections import namedtuple
 from string import Template
 
-import cupy, torch
+import cupy
+import torch
 import cupy as cp
 import torch as t
 from torch.autograd import Function
@@ -59,7 +60,7 @@ class RoI(Function):
         return output
 
     def backward(self, grad_output):
-        ##NOTE: IMPORTANT CONTIGUOUS
+        # NOTE: IMPORTANT CONTIGUOUS
         # TODO: input
         grad_output = grad_output.contiguous()
         B, C, H, W = self.in_size
@@ -90,7 +91,7 @@ class RoIPooling2D(t.nn.Module):
 
 
 def test_roi_module():
-    ## fake data###
+    # fake data###
     B, N, C, H, W, PH, PW = 2, 8, 4, 32, 32, 7, 7
 
     bottom_data = t.randn(B, C, H, W).cuda()
@@ -119,7 +120,7 @@ def test_roi_module():
         assert neq.sum() == 0, 'test failed: %s' % info
 
     # chainer version,if you're going to run this
-    # pip install chainer 
+    # pip install chainer
     import chainer.functions as F
     from chainer import Variable
     x_cn = Variable(t2c(x))
