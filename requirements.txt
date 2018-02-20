@@ -36,6 +36,24 @@ tensorflow-gpu
 tensorflow==0.12.1
 keras==1.2.1
 
-
 # extra
 requests
+
+
+# faster_rcnn
+# https://stackoverflow.com/questions/45018492/include-whl-installation-in-requirements-txt
+http://download.pytorch.org/whl/cu80/torch-0.3.1-cp27-cp27mu-linux_x86_64.whl ; sys_platform == "linux2"
+http://download.pytorch.org/whl/cu80/torch-0.3.1-cp36-cp36m-linux_x86_64.whl ; sys_platform == "linux"
+http://download.pytorch.org/whl/torch-0.3.1-cp36-cp36m-macosx_10_7_x86_64.whl ; sys_platform == "darwin"
+cupy ; sys_platform == "linux2"
+cupy ; sys_platform == "linux"
+visdom
+torchvision
+scikit-image
+tqdm
+fire
+pprint
+matplotlib
+ipdb
+cython
+git+https://github.com/pytorch/tnt.git@master

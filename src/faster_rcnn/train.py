@@ -4,15 +4,16 @@ import ipdb
 import matplotlib
 from tqdm import tqdm
 
-from utils.config import opt
-from data.dataset import Dataset, TestDataset, inverse_normalize
-from model import FasterRCNNVGG16
 from torch.autograd import Variable
 from torch.utils import data as data_
-from trainer import FasterRCNNTrainer
-from utils import array_tool as at
-from utils.vis_tool import visdom_bbox
-from utils.eval_tool import eval_detection_voc
+
+from faster_rcnn.utils.config import opt
+from faster_rcnn.data.dataset import Dataset, TestDataset, inverse_normalize
+from faster_rcnn.model import FasterRCNNVGG16
+from faster_rcnn.trainer import FasterRCNNTrainer
+from faster_rcnn.utils import array_tool as at
+from faster_rcnn.utils.vis_tool import visdom_bbox
+from faster_rcnn.utils.eval_tool import eval_detection_voc
 
 # fix for ulimit
 # https://github.com/pytorch/pytorch/issues/973#issuecomment-346405667

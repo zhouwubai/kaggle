@@ -1,14 +1,15 @@
 from pprint import pprint
-
+from constants import ROOT
 
 # Default Configs for training
 # NOTE that, config items could be overwriten
 # by passing argument through command line.
 # e.g. --voc-data-dir='./data/'
 
+
 class Config:
     # data
-    voc_data_dir = '/home/cy/VOCdevkit/VOC2007/'
+    voc_data_dir = ROOT + 'data/faster_rcnn/VOCdevkit/VOC2007/'
     min_size = 600  # image resize
     max_size = 1000  # image resize
     num_workers = 8
@@ -47,7 +48,7 @@ class Config:
     load_path = None
 
     caffe_pretrain = False  # use caffe pretrained model instead of torchvision
-    caffe_pretrain_path = 'checkpoints/vgg16-caffe.pth'
+    caffe_pretrain_path = ROOT + 'data/faster_rcnn/checkpoints/vgg16-caffe.pth'
 
     def _parse(self, kwargs):
         state_dict = self._state_dict()
