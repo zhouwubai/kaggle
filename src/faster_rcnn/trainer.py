@@ -1,16 +1,19 @@
 from collections import namedtuple
 import time
 from torch.nn import functional as F
-from model.utils.creator_tool import AnchorTargetCreator, ProposalTargetCreator
-
 from torch import nn
 import torch as t
 from torch.autograd import Variable
-from utils import array_tool as at
-from utils.vis_tool import Visualizer
-
-from utils.config import opt
 from torchnet.meter import ConfusionMeter, AverageValueMeter
+
+from faster_rcnn.utils import array_tool as at
+from faster_rcnn.utils.vis_tool import Visualizer
+from faster_rcnn.utils.config import opt
+from faster_rcnn.model.utils.creator_tool import (
+    AnchorTargetCreator,
+    ProposalTargetCreator
+)
+
 
 LossTuple = namedtuple('LossTuple',
                        ['rpn_loc_loss',
@@ -45,7 +48,7 @@ class FasterRCNNTrainer(nn.Module):
         self.rpn_sigma = opt.rpn_sigma
         self.roi_sigma = opt.roi_sigma
 
-        # target creator create gt_bbox gt_label etc as training targets. 
+        # target creator create gt_bbox gt_label etc as training targets.
         self.anchor_target_creator = AnchorTargetCreator()
         self.proposal_target_creator = ProposalTargetCreator()
 
@@ -59,7 +62,8 @@ class FasterRCNNTrainer(nn.Module):
         # indicators for training status
         self.rpn_cm = ConfusionMeter(2)
         self.roi_cm = ConfusionMeter(21)
-        self.meters = {k: AverageValueMeter() for k in LossTuple._fields}  # average loss
+        # average loss
+        self.meters = {k: AverageValueMeter() for k in LossTuple._fields}
 
     def forward(self, imgs, bboxes, labels, scale):
         """Forward Faster R-CNN and calculate losses.
@@ -106,7 +110,7 @@ class FasterRCNNTrainer(nn.Module):
         roi = rois
 
         # Sample RoIs and forward
-        # it's fine to break the computation graph of rois, 
+        # it's fine to break the computation graph of rois,
         # consider them as constant input
         sample_roi, gt_roi_loc, gt_roi_label = self.proposal_target_creator(
             roi,
@@ -135,10 +139,12 @@ class FasterRCNNTrainer(nn.Module):
             self.rpn_sigma)
 
         # NOTE: default value of ignore_index is -100 ...
-        rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label.cuda(), ignore_index=-1)
+        rpn_cls_loss = F.cross_entropy(rpn_score, gt_rpn_label.cuda(),
+                                       ignore_index=-1)
         _gt_rpn_label = gt_rpn_label[gt_rpn_label > -1]
         _rpn_score = at.tonumpy(rpn_score)[at.tonumpy(gt_rpn_label) > -1]
-        self.rpn_cm.add(at.totensor(_rpn_score, False), _gt_rpn_label.data.long())
+        self.rpn_cm.add(at.totensor(_rpn_score, False),
+                        _gt_rpn_label.data.long())
 
         # ------------------ ROI losses (fast rcnn loss) -------------------#
         n_sample = roi_cls_loc.shape[0]
@@ -179,7 +185,7 @@ class FasterRCNNTrainer(nn.Module):
             save_optimizer (bool): whether save optimizer.state_dict().
             save_path (string): where to save model, if it's None, save_path
                 is generate using time str and info from kwargs.
-        
+
         Returns:
             save_path(str): the path to save models.
         """
@@ -245,7 +251,7 @@ def _smooth_l1_loss(x, t, in_weight, sigma):
 def _fast_rcnn_loc_loss(pred_loc, gt_loc, gt_label, sigma):
     in_weight = t.zeros(gt_loc.shape).cuda()
     # Localization loss is calculated only for positive rois.
-    # NOTE:  unlike origin implementation, 
+    # NOTE:  unlike origin implementation,
     # we don't need inside_weight and outside_weight, they can calculate by gt_label
     in_weight[(gt_label > 0).view(-1, 1).expand_as(in_weight).cuda()] = 1
     loc_loss = _smooth_l1_loss(pred_loc, gt_loc, Variable(in_weight), sigma)

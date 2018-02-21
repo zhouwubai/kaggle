@@ -57,3 +57,12 @@ matplotlib
 ipdb
 cython
 git+https://github.com/pytorch/tnt.git@master
+
+
+# visualize the graph for pytorch
+# graphviz needs install using `brew install graphviz`
+# https://github.com/szagoruyko/pytorchviz
+git+https://github.com/szagoruyko/pytorchviz
+
+# tensorboard-pytorch
+# git+https://github.com/lanpa/tensorboard-pytorch

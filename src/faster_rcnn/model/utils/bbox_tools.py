@@ -1,5 +1,4 @@
 import numpy as np
-import numpy as xp
 
 import six
 from six import __init__
@@ -20,8 +19,8 @@ def loc2bbox(src_bbox, loc):
 
     * :math:`\\hat{g}_y = p_h t_y + p_y`
     * :math:`\\hat{g}_x = p_w t_x + p_x`
-    * :math:`\\hat{g}_h = p_h \\exp(t_h)`
-    * :math:`\\hat{g}_w = p_w \\exp(t_w)`
+    * :math:`\\hat{g}_h = p_h * exp(t_h)`
+    * :math:`\\hat{g}_w = p_w * exp(t_w)`
 
     The decoding formulas are used in works such as R-CNN [#]_.
 
@@ -49,7 +48,7 @@ def loc2bbox(src_bbox, loc):
     """
 
     if src_bbox.shape[0] == 0:
-        return xp.zeros((0, 4), dtype=loc.dtype)
+        return np.zeros((0, 4), dtype=loc.dtype)
 
     src_bbox = src_bbox.astype(src_bbox.dtype, copy=False)
 
@@ -58,17 +57,18 @@ def loc2bbox(src_bbox, loc):
     src_ctr_y = src_bbox[:, 0] + 0.5 * src_height
     src_ctr_x = src_bbox[:, 1] + 0.5 * src_width
 
+    # [:, 0::4] instead of [:, 0] will keep it shape as (R, 1) instead (R,)
     dy = loc[:, 0::4]
     dx = loc[:, 1::4]
     dh = loc[:, 2::4]
     dw = loc[:, 3::4]
 
-    ctr_y = dy * src_height[:, xp.newaxis] + src_ctr_y[:, xp.newaxis]
-    ctr_x = dx * src_width[:, xp.newaxis] + src_ctr_x[:, xp.newaxis]
-    h = xp.exp(dh) * src_height[:, xp.newaxis]
-    w = xp.exp(dw) * src_width[:, xp.newaxis]
+    ctr_y = dy * src_height[:, np.newaxis] + src_ctr_y[:, np.newaxis]
+    ctr_x = dx * src_width[:, np.newaxis] + src_ctr_x[:, np.newaxis]
+    h = np.exp(dh) * src_height[:, np.newaxis]
+    w = np.exp(dw) * src_width[:, np.newaxis]
 
-    dst_bbox = xp.zeros(loc.shape, dtype=loc.dtype)
+    dst_bbox = np.zeros(loc.shape, dtype=loc.dtype)
     dst_bbox[:, 0::4] = ctr_y - 0.5 * h
     dst_bbox[:, 1::4] = ctr_x - 0.5 * w
     dst_bbox[:, 2::4] = ctr_y + 0.5 * h
@@ -88,10 +88,10 @@ def bbox2loc(src_bbox, dst_bbox):
     :math:`g_y, g_x` and size :math:`g_h, g_w`, the offsets and scales
     :math:`t_y, t_x, t_h, t_w` can be computed by the following formulas.
 
-    * :math:`t_y = \\frac{(g_y - p_y)} {p_h}`
-    * :math:`t_x = \\frac{(g_x - p_x)} {p_w}`
-    * :math:`t_h = \\log(\\frac{g_h} {p_h})`
-    * :math:`t_w = \\log(\\frac{g_w} {p_w})`
+    * :math:`t_y = \\frac{(g_y - p_y)} / {p_h}`
+    * :math:`t_x = \\frac{(g_x - p_x)} / {p_w}`
+    * :math:`t_h = \\log(\\frac{g_h} / {p_h})`
+    * :math:`t_w = \\log(\\frac{g_w} / {p_w})`
 
     The output is same type as the type of the inputs.
     The encoding formulas are used in works such as R-CNN [#]_.
@@ -129,16 +129,17 @@ def bbox2loc(src_bbox, dst_bbox):
     base_ctr_y = dst_bbox[:, 0] + 0.5 * base_height
     base_ctr_x = dst_bbox[:, 1] + 0.5 * base_width
 
-    eps = xp.finfo(height.dtype).eps
-    height = xp.maximum(height, eps)
-    width = xp.maximum(width, eps)
+    eps = np.finfo(height.dtype).eps
+    height = np.maximum(height, eps)
+    width = np.maximum(width, eps)
 
     dy = (base_ctr_y - ctr_y) / height
     dx = (base_ctr_x - ctr_x) / width
-    dh = xp.log(base_height / height)
-    dw = xp.log(base_width / width)
+    dh = np.log(base_height / height)
+    dw = np.log(base_width / width)
 
-    loc = xp.vstack((dy, dx, dh, dw)).transpose()
+    # why not hstack, 1D array is both row/column vector
+    loc = np.vstack((dy, dx, dh, dw)).transpose()
     return loc
 
 
@@ -173,14 +174,14 @@ def bbox_iou(bbox_a, bbox_b):
         raise IndexError
 
     # top left
-    tl = xp.maximum(bbox_a[:, None, :2], bbox_b[:, :2])
+    tl = np.maximum(bbox_a[:, np.newaxis, :2], bbox_b[:, :2])
     # bottom right
-    br = xp.minimum(bbox_a[:, None, 2:], bbox_b[:, 2:])
+    br = np.minimum(bbox_a[:, np.newaxis, 2:], bbox_b[:, 2:])
 
-    area_i = xp.prod(br - tl, axis=2) * (tl < br).all(axis=2)
-    area_a = xp.prod(bbox_a[:, 2:] - bbox_a[:, :2], axis=1)
-    area_b = xp.prod(bbox_b[:, 2:] - bbox_b[:, :2], axis=1)
-    return area_i / (area_a[:, None] + area_b - area_i)
+    area_i = np.prod(br - tl, axis=2) * (tl < br).all(axis=2)
+    area_a = np.prod(bbox_a[:, 2:] - bbox_a[:, :2], axis=1)
+    area_b = np.prod(bbox_b[:, 2:] - bbox_b[:, :2], axis=1)
+    return area_i / (area_a[:, np.newaxis] + area_b - area_i)
 
 
 def __test():
