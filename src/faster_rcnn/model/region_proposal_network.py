@@ -161,32 +161,6 @@ def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
     return anchor
 
 
-def _enumerate_shifted_anchor_torch(anchor_base, feat_stride, height, width):
-    # Enumerate all shifted anchors:
-    #
-    # add A anchors (1, A, 4) to
-    # cell K shifts (K, 1, 4) to get
-    # shift anchors (K, A, 4)
-    # reshape to (K*A, 4) shifted anchors
-    # return (K*A, 4)
-
-    # !TODO: add support for torch.CudaTensor
-    # xp = cuda.get_array_module(anchor_base)
-    import torch as t
-    shift_y = t.arange(0, height * feat_stride, feat_stride)
-    shift_x = t.arange(0, width * feat_stride, feat_stride)
-    shift_x, shift_y = xp.meshgrid(shift_x, shift_y)
-    shift = xp.stack((shift_y.ravel(), shift_x.ravel(),
-                      shift_y.ravel(), shift_x.ravel()), axis=1)
-
-    A = anchor_base.shape[0]
-    K = shift.shape[0]
-    anchor = anchor_base.reshape((1, A, 4)) + \
-             shift.reshape((1, K, 4)).transpose((1, 0, 2))
-    anchor = anchor.reshape((K * A, 4)).astype(np.float32)
-    return anchor
-
-
 def normal_init(m, mean, stddev, truncated=False):
     """
     weight initalizer: truncated normal and random normal.
