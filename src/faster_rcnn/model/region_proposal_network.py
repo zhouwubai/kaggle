@@ -110,6 +110,7 @@ class RegionProposalNetwork(nn.Module):
         # UNNOTE: check whether need contiguous
         # A: Yes
         rpn_locs = rpn_locs.permute(0, 2, 3, 1).contiguous().view(n, -1, 4)
+        # NOTE: check whether need activation operation here.
         rpn_scores = self.score(h)
         rpn_scores = rpn_scores.permute(0, 2, 3, 1).contiguous()
         rpn_fg_scores = \

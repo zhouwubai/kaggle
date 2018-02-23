@@ -7,7 +7,9 @@ import cupy as cp
 import torch as t
 from torch.autograd import Function
 
-from faster_rcnn.model.utils.roi_cupy import kernel_backward, kernel_forward
+from faster_rcnn.model.utils.roi_cupy import (
+    kernel_backward, kernel_forward
+)
 
 Stream = namedtuple('Stream', ['ptr'])
 
@@ -30,6 +32,15 @@ def GET_BLOCKS(N, K=CUDA_NUM_THREADS):
 class RoI(Function):
     """
     NOTE：only CUDA-compatible
+    Backend function for ROIPooling layer
+
+    This outputs fixed size feature map for each roi pooled from the
+    feature map of whole image based on roi location
+
+    Args:
+        outh (int): the height of output feature map
+        outw (int): the weight of output feature map
+        spatial_scale: scale of roi is resized
     """
 
     def __init__(self, outh, outw, spatial_scale):
@@ -38,7 +49,15 @@ class RoI(Function):
         self.outh, self.outw, self.spatial_scale = outh, outw, spatial_scale
 
     def forward(self, x, rois):
-        # NOTE: MAKE SURE input is contiguous too
+        """
+        NOTE: MAKE SURE input is contiguous so it can be correctly addressed
+        in C code
+
+        Args:
+            x (Variable): 4D image variable (feature map from vgg16)
+            rois (Variable): rois with indices for image in the batch
+                shape (R, 5) => (ind, y_min, x_min, y_max, x_max)
+        """
         x = x.contiguous()
         rois = rois.contiguous()
         self.in_size = B, C, H, W = x.size()
@@ -46,6 +65,7 @@ class RoI(Function):
         output = t.zeros(N, C, self.outh, self.outw).cuda()
         self.argmax_data = t.zeros(N, C, self.outh, self.outw).int().cuda()
         self.rois = rois
+        # data_ptr(), the address of first element in the array
         args = [x.data_ptr(), rois.data_ptr(),
                 output.data_ptr(),
                 self.argmax_data.data_ptr(),
@@ -81,12 +101,31 @@ class RoI(Function):
 
 
 class RoIPooling2D(t.nn.Module):
+    """ROIPooling layer
+    This class is used as the ROIPooling layer for faster R-CNN
+    This outputs fixed size feature map for each roi pooled from the
+    feature map of whole image based on roi location
+
+    Args:
+        outh (int): the height of output feature map
+        outw (int): the weight of output feature map
+        spatial_scale: scale of roi is resized
+    """
 
     def __init__(self, outh, outw, spatial_scale):
         super(RoIPooling2D, self).__init__()
         self.RoI = RoI(outh, outw, spatial_scale)
 
     def forward(self, x, rois):
+        """Forward the chain
+
+        We assume that there are :math: `N` batches.
+
+        Args:
+            x (Variable): 4D image variable (feature map from vgg16)
+            rois (Variable): rois with indices for image in the batch
+                shape (R, 5) => (ind, y_min, x_min, y_max, x_max)
+        """
         return self.RoI(x, rois)
 
 

@@ -91,7 +91,8 @@ class VGG16RoIHead(nn.Module):
 
     Args:
         n_class (int): The number of classes possibly including the background.
-        roi_size (int): Height and width of the feature maps after RoI-pooling.
+        roi_size (int): default 7. Assume height == width
+            Height and width of the feature maps after RoI-pooling.
         spatial_scale (float): Scale of the roi is resized.
         classifier (nn.Module): Two layer Linear ported from vgg16
 
@@ -135,6 +136,7 @@ class VGG16RoIHead(nn.Module):
         # in case roi_indices is  ndarray
         roi_indices = at.totensor(roi_indices).float()
         rois = at.totensor(rois).float()
+        # extend to shape (R, 5) => (ind, y_min, x_min, y_max, x_max)
         indices_and_rois = t.cat([roi_indices[:, None], rois], dim=1)
         # NOTE: important: yx->xy
         xy_indices_and_rois = indices_and_rois[:, [0, 2, 1, 4, 3]]

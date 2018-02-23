@@ -1,12 +1,14 @@
 kernel_forward = '''
     extern "C"
-    __global__ void roi_forward(const float* const bottom_data,const float* const bottom_rois,
+    __global__ void roi_forward(
+                const float* const bottom_data,
+                const float* const bottom_rois,
                 float* top_data, int* argmax_data,
-                const double spatial_scale,const int channels,const int height, 
-                const int width, const int pooled_height, 
-                const int pooled_width,const int NN
+                const double spatial_scale,
+                const int channels, const int height, const int width,
+                const int pooled_height, const int pooled_width, const int NN
     ){
-        
+
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if(idx>=NN)
         return;
