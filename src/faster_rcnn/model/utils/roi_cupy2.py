@@ -8,7 +8,7 @@ kernel_forward = '''
                 const int channels, const int height, const int width,
                 const int pooled_height, const int pooled_width, const int NN
     ){
-
+    // idx is pixel element-wise on pooled feature map
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if(idx>=NN)
         return;
@@ -29,13 +29,14 @@ kernel_forward = '''
     const float bin_size_w = static_cast<float>(roi_width)
                     / static_cast<float>(pooled_width);
 
+    // hstart is relative to the roi position
     int hstart = static_cast<int>(floor(static_cast<float>(ph)
                                     * bin_size_h));
-        int wstart = static_cast<int>(floor(static_cast<float>(pw)
+    int wstart = static_cast<int>(floor(static_cast<float>(pw)
                                     * bin_size_w));
     int hend = static_cast<int>(ceil(static_cast<float>(ph + 1)
                                 * bin_size_h));
-        int wend = static_cast<int>(ceil(static_cast<float>(pw + 1)
+    int wend = static_cast<int>(ceil(static_cast<float>(pw + 1)
                                 * bin_size_w));
 
     // Add roi offsets and clip to input boundaries
@@ -74,7 +75,7 @@ kernel_backward = '''
                 int channels, int height, int width,
                 int pooled_height, int pooled_width,const int NN)
     {
-
+    // idx is pixel element-wise on the feature map
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     ////Importtan >= instead of >
     if(idx>=NN)
@@ -82,6 +83,7 @@ kernel_backward = '''
     int w = idx % width;
     int h = (idx / width) % height;
     int c = (idx/ (width * height)) % channels;
+    // num is the index for image
     int num = idx / (width * height * channels);
 
     float gradient = 0;
@@ -108,6 +110,7 @@ kernel_backward = '''
             continue;
         }
 
+        // channel offset for starting index on pooled feature map
         int offset = (roi_n * channels + c) * pooled_height
                         * pooled_width;
 
@@ -123,6 +126,7 @@ kernel_backward = '''
         float bin_size_w = static_cast<float>(roi_width)
                         / static_cast<float>(pooled_width);
 
+        // find corresponding pooled feature for current pixel position
         int phstart = floor(static_cast<float>(h - roi_start_h)
                             / bin_size_h);
         int phend = ceil(static_cast<float>(h - roi_start_h + 1)
