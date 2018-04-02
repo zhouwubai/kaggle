@@ -8,7 +8,7 @@ from torchnet.meter import ConfusionMeter, AverageValueMeter
 
 from faster_rcnn.pytorch.utils import array_tool as at
 from faster_rcnn.pytorch.utils.vis_tool import Visualizer
-from faster_rcnn.pytorch.utils.config import opt
+from faster_rcnn.pytorch.config import opt
 from faster_rcnn.pytorch.model.utils.creator_tool import (
     AnchorTargetCreator,
     ProposalTargetCreator

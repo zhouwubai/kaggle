@@ -7,7 +7,7 @@ from tqdm import tqdm
 from torch.autograd import Variable
 from torch.utils import data as data_
 
-from faster_rcnn.config import opt
+from faster_rcnn.pytorch.config import opt
 from faster_rcnn.data.dataset import (
     Dataset, TestDataset,
     inverse_normalize
