@@ -6,11 +6,11 @@ import cupy as cp
 from torch import nn
 from torch.nn import functional as F
 
-from faster_rcnn.utils import array_tool as at
-from faster_rcnn.model.utils.bbox_tools import loc2bbox
-from faster_rcnn.model.utils.nms import non_maximum_suppression
-from faster_rcnn.data.dataset import preprocess
-from faster_rcnn.utils.config import opt
+from faster_rcnn.pytorch.utils import array_tool as at
+from faster_rcnn.pytorch.model.utils.bbox_tools import loc2bbox
+from faster_rcnn.pytorch.model.utils.nms import non_maximum_suppression
+from faster_rcnn.pytorch.data.dataset import preprocess
+from faster_rcnn.pytorch.utils.config import opt
 
 
 class FasterRCNN(nn.Module):

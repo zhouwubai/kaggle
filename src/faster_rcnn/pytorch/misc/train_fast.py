@@ -4,31 +4,34 @@ import ipdb
 import matplotlib
 from tqdm import tqdm
 
-from utils.config import opt
-from data.dataset import Dataset, TestDataset
-from model import FasterRCNNVGG16
+from faster_rcnn.pytorch.utils.config import opt
+from faster_rcnn.pytorch.data.dataset import Dataset, TestDataset
+from faster_rcnn.pytorch.model import FasterRCNNVGG16
 from torch.autograd import Variable
 from torch.utils import data as data_
-from trainer import FasterRCNNTrainer
-from utils import array_tool as at
-from utils.vis_tool import visdom_bbox
-from utils.eval_tool import eval_detection_voc
+from faster_rcnn.pytorch.trainer import FasterRCNNTrainer
+from faster_rcnn.pytorch.utils import array_tool as at
+from faster_rcnn.pytorch.utils.vis_tool import visdom_bbox
+from faster_rcnn.pytorch.utils.eval_tool import eval_detection_voc
 
 matplotlib.use('agg')
+
 
 def eval(dataloader, faster_rcnn, test_num=10000):
     pred_bboxes, pred_labels, pred_scores = list(), list(), list()
     gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
     for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_) in tqdm(enumerate(dataloader)):
         sizes = [sizes[0][0], sizes[1][0]]
-        pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict(imgs, [sizes])
+        pred_bboxes_, pred_labels_, pred_scores_ =\
+            faster_rcnn.predict(imgs, [sizes])
         gt_bboxes += list(gt_bboxes_.numpy())
         gt_labels += list(gt_labels_.numpy())
         gt_difficults += list(gt_difficults_.numpy())
         pred_bboxes += pred_bboxes_
         pred_labels += pred_labels_
         pred_scores += pred_scores_
-        if ii == test_num: break
+        if ii == test_num:
+            break
 
     result = eval_detection_voc(
         pred_bboxes, pred_labels, pred_scores,
@@ -42,9 +45,9 @@ def train(**kwargs):
 
     dataset = Dataset(opt)
     print('load data')
-    dataloader = data_.DataLoader(dataset, \
-                                  batch_size=1, \
-                                  shuffle=True, \
+    dataloader = data_.DataLoader(dataset,
+                                  batch_size=1,
+                                  shuffle=True,
                                   # pin_memory=True,
                                   num_workers=opt.num_workers)
     testset = TestDataset(opt)
@@ -80,16 +83,16 @@ def train(**kwargs):
 
                 # plot groud truth bboxes
                 ori_img_ = (img * 0.225 + 0.45).clamp(min=0, max=1) * 255
-                gt_img = visdom_bbox(at.tonumpy(ori_img_)[0], 
-                                    at.tonumpy(bbox_)[0], 
+                gt_img = visdom_bbox(at.tonumpy(ori_img_)[0],
+                                    at.tonumpy(bbox_)[0],
                                     label_[0].numpy())
                 trainer.vis.img('gt_img', gt_img)
 
                 # plot predicti bboxes
                 _bboxes, _labels, _scores = trainer.faster_rcnn.predict(ori_img,visualize=True)
-                pred_img = visdom_bbox( at.tonumpy(ori_img[0]), 
+                pred_img = visdom_bbox( at.tonumpy(ori_img[0]),
                                         at.tonumpy(_bboxes[0]),
-                                        at.tonumpy(_labels[0]).reshape(-1), 
+                                        at.tonumpy(_labels[0]).reshape(-1),
                                         at.tonumpy(_scores[0]))
                 trainer.vis.img('pred_img', pred_img)
 

@@ -7,7 +7,7 @@ import cupy as cp
 import torch as t
 from torch.autograd import Function
 
-from faster_rcnn.model.utils.roi_cupy import (
+from faster_rcnn.pytorch.model.utils.roi_cupy import (
     kernel_backward, kernel_forward
 )
 
