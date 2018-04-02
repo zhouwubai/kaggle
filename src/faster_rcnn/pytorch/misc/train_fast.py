@@ -4,7 +4,7 @@ import ipdb
 import matplotlib
 from tqdm import tqdm
 
-from faster_rcnn.pytorch.utils.config import opt
+from faster_rcnn.config import opt
 from faster_rcnn.data.dataset import Dataset, TestDataset
 from faster_rcnn.pytorch.model import FasterRCNNVGG16
 from torch.autograd import Variable

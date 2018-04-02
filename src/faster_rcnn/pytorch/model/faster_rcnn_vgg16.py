@@ -8,7 +8,7 @@ from faster_rcnn.pytorch.model.region_proposal_network import (
 from faster_rcnn.pytorch.model.faster_rcnn import FasterRCNN
 from faster_rcnn.pytorch.model.roi_module import RoIPooling2D
 from faster_rcnn.pytorch.utils import array_tool as at
-from faster_rcnn.pytorch.utils.config import opt
+from faster_rcnn.config import opt
 
 
 def decom_vgg16():
