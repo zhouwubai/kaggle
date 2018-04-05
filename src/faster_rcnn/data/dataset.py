@@ -8,6 +8,10 @@ from faster_rcnn.pytorch.config import opt
 
 
 def inverse_normalize(img):
+    """
+    https://github.com/rbgirshick/py-faster-rcnn/issues/37
+    https://gist.github.com/ksimonyan/211839e770f7b538e2d8
+    """
     if opt.caffe_pretrain:
         img = img + (np.array([122.7717, 115.9465, 102.9801]).reshape(3, 1, 1))
         return img[::-1, :, :]

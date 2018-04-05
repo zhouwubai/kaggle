@@ -6,6 +6,7 @@ import random
 def read_image(path, dtype=np.float32, color=True):
     """Read an image from a file.
 
+    CHW: Channel, Height, Weight
     This function reads an image from given file. The image is CHW format and
     the range of its value is :math:`[0, 255]`. If :obj:`color = True`, the
     order of the channels is RGB.

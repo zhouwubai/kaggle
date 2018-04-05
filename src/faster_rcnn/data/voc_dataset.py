@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 
 from .util import read_image
+# from IPython.core.debugger import set_trace
 
 
 class VOCBboxDataset:
@@ -99,6 +100,7 @@ class VOCBboxDataset:
 
         """
         id_ = self.ids[i]
+        # set_trace()
         anno = ET.parse(
             os.path.join(self.data_dir, 'Annotations', id_ + '.xml'))
         bbox = list()
