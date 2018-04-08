@@ -26,6 +26,7 @@ def decom_vgg16():
     classifier = list(classifier)
     del classifier[6]
     if not opt.use_drop:
+        # remove dropout layer
         del classifier[5]
         del classifier[2]
     classifier = nn.Sequential(*classifier)

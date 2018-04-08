@@ -1,5 +1,3 @@
-# https://github.com/chainer/chainercv/blob/master/chainercv/functions/psroi_pooling_2d.py
-# https://github.com/mitmul/chainer-faster-rcnn/tree/master
 from __future__ import division
 
 import numpy as np

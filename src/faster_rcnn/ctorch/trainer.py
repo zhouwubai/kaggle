@@ -1,3 +1,5 @@
+# https://github.com/chainer/chainercv/blob/master/chainercv/functions/psroi_pooling_2d.py
+# https://github.com/mitmul/chainer-faster-rcnn/tree/master
 from collections import namedtuple
 import time
 from torch.nn import functional as F

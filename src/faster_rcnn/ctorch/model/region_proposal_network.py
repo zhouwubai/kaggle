@@ -106,9 +106,10 @@ class RegionProposalNetwork(nn.Module):
         n_anchor = anchor.shape[0] // (hh * ww)
         h = F.relu(self.conv1(x))
 
+        # shape (B, C, H, W), C = anchor * 4 = 36
         rpn_locs = self.loc(h)
         # UNNOTE: check whether need contiguous
-        # A: Yes
+        # A: Yes (B, H W A, 4)
         rpn_locs = rpn_locs.permute(0, 2, 3, 1).contiguous().view(n, -1, 4)
         # NOTE: check whether need activation operation here.
         rpn_scores = self.score(h)
@@ -136,13 +137,25 @@ class RegionProposalNetwork(nn.Module):
 
 
 def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
-    # Enumerate all shifted anchors:
-    #
-    # add A anchors (1, A, 4) to
-    # cell K shifts (K, 1, 4) to get
-    # shift anchors (K, A, 4)
-    # reshape to (K*A, 4) shifted anchors
-    # return (K*A, 4)
+    """
+    Enumerate all shifted anchors:
+
+    add A anchors (1, A, 4) to
+    cell K shifts (K, 1, 4) to get
+    shift anchors (K, A, 4)
+    reshape to (K*A, 4) shifted anchors
+    return (K*A, 4)
+
+    Args:
+        anchor_base: list, shape (R, 4)
+            the anchor bases of shape (R, 4), each anchor is decoded as
+            (y_min, x_min, y_max, x_max)
+        feat_stride: int
+            downsampling ratio from image size to feature map size
+        height: int
+            feature map height
+        width: int feature map height
+    """
 
     # !TODO: add support for torch.CudaTensor
     # xp = cuda.get_array_module(anchor_base)
