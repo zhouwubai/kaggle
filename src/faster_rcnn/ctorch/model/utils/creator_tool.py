@@ -26,7 +26,7 @@ class ProposalTargetCreator(object):
             foreground.
         neg_iou_thresh_hi (float): RoI is considered to be the background
             if IoU is in
-            [:obj:`neg_iou_thresh_hi`, :obj:`neg_iou_thresh_hi`).
+            [:obj:`neg_iou_thresh_lo`, :obj:`neg_iou_thresh_hi`).
         neg_iou_thresh_lo (float): See above.
 
     """
@@ -256,9 +256,12 @@ class AnchorTargetCreator(object):
         # ious between the anchors and the gt boxes
         ious = bbox_iou(anchor, bbox)
         argmax_ious = ious.argmax(axis=1)
+        # get the ous value
         max_ious = ious[np.arange(len(inside_index)), argmax_ious]
+        # order by y-axis
         gt_argmax_ious = ious.argmax(axis=0)
         gt_max_ious = ious[gt_argmax_ious, np.arange(ious.shape[1])]
+        # only select the x axis (reorder by x-axis)
         gt_argmax_ious = np.where(ious == gt_max_ious)[0]
 
         return argmax_ious, max_ious, gt_argmax_ious

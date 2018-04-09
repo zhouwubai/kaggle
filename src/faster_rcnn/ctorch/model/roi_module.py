@@ -132,6 +132,7 @@ class RoIPooling2D(t.nn.Module):
             x (Variable): 4D image variable (feature map from vgg16)
             rois (Variable): rois with indices for image in the batch
                 shape (R, 5) => (ind, y_min, x_min, y_max, x_max)
+                           ? => (ind, x_min, y_min, x_max, y_max)
         """
         return self.RoI(x, rois)
 
