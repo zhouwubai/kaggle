@@ -113,7 +113,8 @@ def vis_bbox(img, bbox, label=None, score=None, ax=None):
 
         if label is not None and label_names is not None:
             lb = label[i]
-            if not (-1 <= lb < len(label_names)):  # modfy here to add backgroud
+            # modfy here to add backgroud
+            if not (-1 <= lb < len(label_names)):
                 raise ValueError('No corresponding name is given')
             caption.append(label_names[lb])
         if score is not None:
@@ -130,7 +131,7 @@ def vis_bbox(img, bbox, label=None, score=None, ax=None):
 
 def fig2data(fig):
     """
-    brief Convert a Matplotlib figure to a 4D numpy array with RGBA 
+    brief Convert a Matplotlib figure to a 4D numpy array with RGBA
     channels and return it
 
     @param fig： a matplotlib figure
@@ -144,7 +145,8 @@ def fig2data(fig):
     buf = np.fromstring(fig.canvas.tostring_argb(), dtype=np.uint8)
     buf.shape = (w, h, 4)
 
-    # canvas.tostring_argb give pixmap in ARGB mode. Roll the ALPHA channel to have it in RGBA mode
+    # canvas.tostring_argb give pixmap in ARGB mode.
+    # Roll the ALPHA channel to have it in RGBA mode
     buf = np.roll(buf, 3, axis=2)
     return buf.reshape(h, w, 4)
 
@@ -169,7 +171,7 @@ def visdom_bbox(*args, **kwargs):
 class Visualizer(object):
     """
     wrapper for visdom
-    you can still access naive visdom function by 
+    you can still access naive visdom function by
     self.line, self.scater,self._send,etc.
     due to the implementation of `__getattr__`
     """
@@ -234,7 +236,7 @@ class Visualizer(object):
         self.log({'loss':1,'lr':0.0001})
         """
         self.log_text += ('[{time}] {info} <br>'.format(
-            time=time.strftime('%m%d_%H%M%S'), \
+            time=time.strftime('%m%d_%H%M%S'),
             info=info))
         self.vis.text(self.log_text, win)
 
@@ -250,7 +252,8 @@ class Visualizer(object):
         }
 
     def load_state_dict(self, d):
-        self.vis = visdom.Visdom(env=d.get('env', self.vis.env), **(self.d.get('vis_kw')))
+        self.vis = visdom.Visdom(env=d.get('env', self.vis.env),
+                                 **(self.d.get('vis_kw')))
         self.log_text = d.get('log_text', '')
         self.index = d.get('index', dict())
         return self

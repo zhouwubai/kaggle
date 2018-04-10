@@ -20,6 +20,7 @@ class ProposalTargetCreator(object):
 
     Args:
         n_sample (int): The number of sampled regions.
+            strickly speaking, len(samples) <= n_sample
         pos_ratio (float): Fraction of regions that is labeled as a
             foreground.
         pos_iou_thresh (float): IoU threshold for a RoI to be considered as a
@@ -106,6 +107,7 @@ class ProposalTargetCreator(object):
 
         # Select foreground RoIs as those with >= pos_iou_thresh IoU.
         pos_index = np.where(max_iou >= self.pos_iou_thresh)[0]
+        # why make it min ?
         pos_roi_per_this_image = int(min(pos_roi_per_image, pos_index.size))
         if pos_index.size > 0:
             pos_index = np.random.choice(
@@ -129,6 +131,8 @@ class ProposalTargetCreator(object):
         sample_roi = roi[keep_index]
 
         # Compute offsets and scales to match sampled RoIs to the GTs.
+        # NOTE: what is the bbox for negative examples ?
+        # It is not accounted for loss.
         gt_roi_loc = bbox2loc(sample_roi, bbox[gt_assignment[keep_index]])
         gt_roi_loc = ((gt_roi_loc - np.array(loc_normalize_mean, np.float32)
                        ) / np.array(loc_normalize_std, np.float32))
@@ -235,6 +239,7 @@ class AnchorTargetCreator(object):
         label[max_ious >= self.pos_iou_thresh] = 1
 
         # subsample positive labels if we have too many
+        # and label them as -1, ignore
         n_pos = int(self.pos_ratio * self.n_sample)
         pos_index = np.where(label == 1)[0]
         if len(pos_index) > n_pos:
@@ -253,15 +258,21 @@ class AnchorTargetCreator(object):
         return argmax_ious, label
 
     def _calc_ious(self, anchor, bbox, inside_index):
-        # ious between the anchors and the gt boxes
+        """ious between the anchors and the gt boxes
+           inside_index is not needed, len(anchor) == len(inside_index)
+        """
         ious = bbox_iou(anchor, bbox)
         argmax_ious = ious.argmax(axis=1)
         # get the ous value
         max_ious = ious[np.arange(len(inside_index)), argmax_ious]
-        # order by y-axis
+
+        """
+        1. find the best matching anchor for each bbox
+        2. get the corresponding max_ious
+        3. best matching anchor ordered by row number
+        """
         gt_argmax_ious = ious.argmax(axis=0)
         gt_max_ious = ious[gt_argmax_ious, np.arange(ious.shape[1])]
-        # only select the x axis (reorder by x-axis)
         gt_argmax_ious = np.where(ious == gt_max_ious)[0]
 
         return argmax_ious, max_ious, gt_argmax_ious

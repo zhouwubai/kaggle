@@ -140,11 +140,9 @@ def _enumerate_shifted_anchor(anchor_base, feat_stride, height, width):
     """
     Enumerate all shifted anchors:
 
-    add A anchors (1, A, 4) to
-    cell K shifts (K, 1, 4) to get
-    shift anchors (K, A, 4)
-    reshape to (K*A, 4) shifted anchors
-    return (K*A, 4)
+    add A anchors (1, A, 4) to cell K shifts (K, 1, 4) to get
+    shift anchors (K, A, 4) reshape to (K*A, 4) shifted anchors
+    return (K*A, 4), in which K = H x W
 
     Args:
         anchor_base: list, shape (R, 4)

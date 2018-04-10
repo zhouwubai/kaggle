@@ -50,6 +50,9 @@ class Config:
     caffe_pretrain = False  # use caffe pretrained model instead of torchvision
     caffe_pretrain_path = ROOT + 'data/faster_rcnn/checkpoints/vgg16-caffe.pth'
 
+    save_model = True
+    save_path = ROOT + 'data/checkpoints/faster-rcnn-pytorch.pth'
+
     def _parse(self, kwargs):
         state_dict = self._state_dict()
         for k, v in kwargs.items():
