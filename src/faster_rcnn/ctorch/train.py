@@ -1,3 +1,4 @@
+from chainer import cuda  # to speed up
 import matplotlib
 from tqdm import tqdm
 
@@ -97,8 +98,8 @@ def train(**kwargs):
         if epoch == 13:
             break
 
-    if opt.save_model:
-        trainer.save(save_path=opt.save_path)
+    # just current dir to enable sync
+    trainer.save(save_path='faster-rcnn-pytorch.pth')
 
 
 if __name__ == '__main__':

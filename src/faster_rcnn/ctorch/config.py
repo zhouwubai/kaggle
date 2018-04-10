@@ -12,8 +12,8 @@ class Config:
     voc_data_dir = ROOT + 'data/faster_rcnn/VOCdevkit/VOC2007/'
     min_size = 600  # image resize
     max_size = 1000  # image resize
-    num_workers = 8
-    test_num_workers = 8
+    num_workers = 4
+    test_num_workers = 4
 
     # sigma for l1_smooth_loss
     rpn_sigma = 3.
@@ -43,7 +43,7 @@ class Config:
     # debug
     debug_file = '/tmp/debugf'
 
-    test_num = 10000
+    test_num = 1000
     # model
     load_path = None
 
@@ -51,7 +51,7 @@ class Config:
     caffe_pretrain_path = ROOT + 'data/faster_rcnn/checkpoints/vgg16-caffe.pth'
 
     save_model = True
-    save_path = ROOT + 'data/checkpoints/faster-rcnn-pytorch.pth'
+    save_path = ROOT + 'data/faster_rcnn/checkpoints/faster-rcnn-pytorch.pth'
 
     def _parse(self, kwargs):
         state_dict = self._state_dict()
