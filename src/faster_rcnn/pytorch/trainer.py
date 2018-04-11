@@ -56,8 +56,6 @@ class FasterRCNNTrainer(nn.Module):
         self.loc_normalize_std = faster_rcnn.loc_normalize_std
 
         self.optimizer = self.faster_rcnn.get_optimizer()
-        # visdom wrapper
-        self.vis = Visualizer(env=opt.env)
 
         # indicators for training status
         self.rpn_cm = ConfusionMeter(2)
@@ -149,7 +147,7 @@ class FasterRCNNTrainer(nn.Module):
         # ------------------ ROI losses (fast rcnn loss) -------------------#
         n_sample = roi_cls_loc.shape[0]
         roi_cls_loc = roi_cls_loc.view(n_sample, -1, 4)
-        roi_loc = roi_cls_loc[t.arange(0, n_sample).long().cuda(), \
+        roi_loc = roi_cls_loc[t.arange(0, n_sample).long().cuda(),
                               at.totensor(gt_roi_label).long()]
         gt_roi_label = at.tovariable(gt_roi_label).long()
         gt_roi_loc = at.tovariable(gt_roi_loc)
@@ -162,7 +160,8 @@ class FasterRCNNTrainer(nn.Module):
 
         roi_cls_loss = nn.CrossEntropyLoss()(roi_score, gt_roi_label.cuda())
 
-        self.roi_cm.add(at.totensor(roi_score, False), gt_roi_label.data.long())
+        self.roi_cm.add(at.totensor(roi_score, False),
+                        gt_roi_label.data.long())
 
         losses = [rpn_loc_loss, rpn_cls_loss, roi_loc_loss, roi_cls_loss]
         losses = losses + [sum(losses)]
@@ -194,19 +193,20 @@ class FasterRCNNTrainer(nn.Module):
         save_dict['model'] = self.faster_rcnn.state_dict()
         save_dict['config'] = opt._state_dict()
         save_dict['other_info'] = kwargs
-        save_dict['vis_info'] = self.vis.state_dict()
 
         if save_optimizer:
             save_dict['optimizer'] = self.optimizer.state_dict()
 
         if save_path is None:
+            save_path = opt.save_path
             timestr = time.strftime('%m%d%H%M')
-            save_path = 'checkpoints/fasterrcnn_%s' % timestr
+
+            # add time and kwargs
+            save_path += '_%s' % timestr
             for k_, v_ in kwargs.items():
                 save_path += '_%s' % v_
 
         t.save(save_dict, save_path)
-        self.vis.save([self.vis.env])
         return save_path
 
     def load(self, path, load_optimizer=True, parse_opt=False, ):

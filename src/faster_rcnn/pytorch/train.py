@@ -1,6 +1,4 @@
-import os
-
-import ipdb
+from chainer import cuda  # to speed up
 import matplotlib
 from tqdm import tqdm
 
@@ -10,12 +8,11 @@ from torch.utils import data as data_
 from faster_rcnn.pytorch.config import opt
 from faster_rcnn.data.dataset import (
     Dataset, TestDataset,
-    inverse_normalize
+    # inverse_normalize
 )
 from faster_rcnn.pytorch.model import FasterRCNNVGG16
 from faster_rcnn.pytorch.trainer import FasterRCNNTrainer
 from faster_rcnn.pytorch.utils import array_tool as at
-from faster_rcnn.pytorch.utils.vis_tool import visdom_bbox
 from faster_rcnn.pytorch.utils.eval_tool import eval_detection_voc
 
 # fix for ulimit
@@ -65,8 +62,8 @@ def train(**kwargs):
     test_dataloader = data_.DataLoader(testset,
                                        batch_size=1,
                                        num_workers=opt.test_num_workers,
-                                       shuffle=False,
-                                       pin_memory=True
+                                       # pin_memory=True,
+                                       shuffle=False
                                        )
     faster_rcnn = FasterRCNNVGG16()
     print('model construct completed')
@@ -75,7 +72,6 @@ def train(**kwargs):
         trainer.load(opt.load_path)
         print('load pretrained model from %s' % opt.load_path)
 
-    trainer.vis.text(dataset.db.label_names, win='labels')
     best_map = 0
     lr_ = opt.lr
     for epoch in range(opt.epoch):
@@ -86,35 +82,6 @@ def train(**kwargs):
             img, bbox, label = Variable(img), Variable(bbox), Variable(label)
             trainer.train_step(img, bbox, label, scale)
 
-            if (ii + 1) % opt.plot_every == 0:
-                if os.path.exists(opt.debug_file):
-                    ipdb.set_trace()
-
-                # plot loss
-                trainer.vis.plot_many(trainer.get_meter_data())
-
-                # plot groud truth bboxes
-                ori_img_ = inverse_normalize(at.tonumpy(img[0]))
-                gt_img = visdom_bbox(ori_img_,
-                                     at.tonumpy(bbox_[0]),
-                                     at.tonumpy(label_[0]))
-                trainer.vis.img('gt_img', gt_img)
-
-                # plot predicti bboxes
-                _bboxes, _labels, _scores =\
-                    trainer.faster_rcnn.predict([ori_img_], visualize=True)
-                pred_img = visdom_bbox(ori_img_,
-                                       at.tonumpy(_bboxes[0]),
-                                       at.tonumpy(_labels[0]).reshape(-1),
-                                       at.tonumpy(_scores[0]))
-                trainer.vis.img('pred_img', pred_img)
-
-                # rpn confusion matrix(meter)
-                trainer.vis.text(str(trainer.rpn_cm.value().tolist()),
-                                 win='rpn_cm')
-                # roi confusion matrix
-                trainer.vis.img('roi_cm', at.totensor(trainer.roi_cm.conf,
-                                                      False).float())
         eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
 
         if eval_result['map'] > best_map:
@@ -125,12 +92,14 @@ def train(**kwargs):
             trainer.faster_rcnn.scale_lr(opt.lr_decay)
             lr_ = lr_ * opt.lr_decay
 
-        trainer.vis.plot('test_map', eval_result['map'])
         log_info = 'lr:{}, map:{},loss:{}'.format(
             str(lr_), str(eval_result['map']), str(trainer.get_meter_data()))
-        trainer.vis.log(log_info)
+        print(log_info)
         if epoch == 13:
             break
+
+    # just current dir to enable sync
+    trainer.save(save_path='faster-rcnn-pytorch.pth')
 
 
 if __name__ == '__main__':

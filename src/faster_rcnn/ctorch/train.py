@@ -62,9 +62,8 @@ def train(**kwargs):
     test_dataloader = data_.DataLoader(testset,
                                        batch_size=1,
                                        num_workers=opt.test_num_workers,
-                                       shuffle=False,
-                                       pin_memory=True
-                                       )
+                                       # pin_memory=True,
+                                       shuffle=False)
     faster_rcnn = FasterRCNNVGG16()
     print('model construct completed')
     trainer = FasterRCNNTrainer(faster_rcnn).cuda()

@@ -106,3 +106,7 @@ kenv/
 constants.py
 *.ipynb
 *.csv
+
+# sync file
+.bsync-snap-*
+
