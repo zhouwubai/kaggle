@@ -1,8 +1,10 @@
 import numpy as np
 import cupy as cp
 
-from faster_rcnn.model.utils.bbox_tools import bbox2loc, bbox_iou, loc2bbox
-from faster_rcnn.model.utils.nms import non_maximum_suppression
+from faster_rcnn.pytorch.model.utils.bbox_tools import (
+    bbox2loc, bbox_iou, loc2bbox
+)
+from faster_rcnn.pytorch.model.utils.nms import non_maximum_suppression
 
 
 class ProposalTargetCreator(object):

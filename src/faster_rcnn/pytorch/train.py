@@ -10,7 +10,7 @@ from faster_rcnn.data.dataset import (
     Dataset, TestDataset,
     # inverse_normalize
 )
-from faster_rcnn.pytorch.model import FasterRCNNVGG16
+from faster_rcnn.pytorch.model.faster_rcnn_vgg16 import FasterRCNNVGG16
 from faster_rcnn.pytorch.trainer import FasterRCNNTrainer
 from faster_rcnn.pytorch.utils import array_tool as at
 from faster_rcnn.pytorch.utils.eval_tool import eval_detection_voc
@@ -20,7 +20,7 @@ from faster_rcnn.pytorch.utils.eval_tool import eval_detection_voc
 import resource
 
 rlimit = resource.getrlimit(resource.RLIMIT_NOFILE)
-resource.setrlimit(resource.RLIMIT_NOFILE, (20480, rlimit[1]))
+# resource.setrlimit(resource.RLIMIT_NOFILE, (20480, rlimit[1]))
 
 matplotlib.use('agg')
 
