@@ -24,9 +24,9 @@ And it has the following features:
 
 ### 2.1 mAP
 
-VGG16 train on `trainval` and test on `test` split. 
+VGG16 train on `trainval` and test on `test` split.
 
-**Note**: the training shows great randomness, you may need a bit of luck and more epoches of training to reach the highest mAP. However, it should be easy to surpass the lower bound. 
+**Note**: the training shows great randomness, you may need a bit of luck and more epoches of training to reach the highest mAP. However, it should be easy to surpass the lower bound.
 
 |              Implementation              |     mAP     |
 | :--------------------------------------: | :---------: |
@@ -43,7 +43,7 @@ VGG16 train on `trainval` and test on `test` split.
 |                 This[1]                  | TITAN Xp | 14-15 fps |   6 fps    |
 | [pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn) | TITAN Xp | 15-17fps  |    6fps    |
 
-[1]: make sure you install cupy correctly and only one program run on the GPU. The training speed is sensitive to your gpu status. see [troubleshooting](troubleshooting) for more info. Morever it's slow in the start of the program. 
+[1]: make sure you install cupy correctly and only one program run on the GPU. The training speed is sensitive to your gpu status. see [troubleshooting](troubleshooting) for more info. Morever it's slow in the start of the program.
 
 It could be faster by removing visualization, logging, averaging loss etc.
 ## 3. Install dependencies
@@ -56,18 +56,12 @@ requires python3 and PyTorch 0.3
 
 - install other dependencies:  `pip install -r requirements.txt `
 
-- Optional, but strongly recommended: build cython code `nms_gpu_post`: 
+- Optional, but strongly recommended: build cython code `nms_gpu_post`:
 
   ```Bash
   cd model/utils/nms/
   python3 build.py build_ext --inplace
   ```
-
-- start vidom for visualization
-
-```Bash
-nohup python3 -m visdom.server &
-```
 
 
 ## 4. Demo
@@ -122,7 +116,7 @@ If you want to use caffe-pretrain model as initial weight, you can run below to 
 python misc/convert_caffe_pretrain.py
 ````
 
-This scripts would download pretrained model and converted it to the format compatible with torchvision. 
+This scripts would download pretrained model and converted it to the format compatible with torchvision.
 
 Then you should specify where caffe-pretraind model `vgg16_caffe.pth` stored in `utils/config.py` by setting `caffe_pretrain_path`
 
@@ -130,7 +124,7 @@ If you want to use pretrained model from torchvision, you may skip this step.
 
 **NOTE**, caffe pretrained model has shown slight better performance.
 
-**NOTE**: caffe model require images in BGR 0-255, while torchvision model requires images in RGB and 0-1. See `data/dataset.py`for more detail. 
+**NOTE**: caffe model require images in BGR 0-255, while torchvision model requires images in RGB and 0-1. See `data/dataset.py`for more detail.
 
 ### 5.3 begin training
 
@@ -139,7 +133,7 @@ mkdir checkpoints/ # folder for snapshots
 ```
 
 ```bash
-python3 train.py train --env='fasterrcnn-caffe' --plot-every=100 --caffe-pretrain    
+python3 train.py train --env='fasterrcnn-caffe' --plot-every=100 --caffe-pretrain
 ```
 
 you may refer to `utils/config.py` for more argument.
@@ -147,32 +141,19 @@ you may refer to `utils/config.py` for more argument.
 Some Key arguments:
 
 - `--caffe-pretrain=False`: use pretrain model from caffe or torchvision (Default: torchvison)
-- `--plot-every=n`: visualize prediction, loss etc every `n` batches.
 - `--env`: visdom env for visualization
 - `--voc_data_dir`: where the VOC data stored
 - `--use-drop`: use dropout in RoI head, default False
 - `--use-Adam`: use Adam instead of SGD, default SGD. (You need set a very low `lr` for Adam)
 - `--load-path`: pretrained model path, default `None`, if it's specified, it would be loaded.
 
-you may open browser, visit `http://<ip>:8097` and see the visualization of training procedure as below:
-
-![visdom](http://7zh43r.com2.z0.glb.clouddn.com/del/visdom-fasterrcnn.png) 
-
-If you're in China and encounter problem with visdom (i.e. timeout, blank screen), you may refer to [visdom issue](https://github.com/facebookresearch/visdom/issues/111#issuecomment-321743890), and see [troubleshooting](#troubleshooting) for solution.
 
 ## Troubleshooting
-- visdom
 
-  Some js files in visdom was blocked in China, see simple solution [here](https://github.com/chenyuntc/PyTorch-book/blob/master/README.md#visdom打不开及其解决方案)
-
-  Also, `updata=append` doesn't work due to a bug brought in latest version, see [issue](https://github.com/facebookresearch/visdom/issues/233) and [fix](https://github.com/facebookresearch/visdom/pull/234/files)
-
-  You don't need to build from source, modifying related files would be OK.
-
-- dataloader: `received 0 items of ancdata` 
+- dataloader: `received 0 items of ancdata`
 
   see [discussion](https://github.com/pytorch/pytorch/issues/973#issuecomment-346405667), It's alreadly fixed in [train.py](https://github.com/chenyuntc/simple-faster-rcnn-pytorch/blob/master/train.py#L17-L22). So I think you are free from this problem.
-  
+
 - cupy `numpy.core._internal.AxisError: axis 1 out of bounds [0, 1)`
 
   bug of cupy, see [issue](https://github.com/cupy/cupy/issues/793), fix via [pull request](https://github.com/cupy/cupy/pull/749)
@@ -182,7 +163,7 @@ If you're in China and encounter problem with visdom (i.e. timeout, blank screen
 - VGG: Slow in construction
 
   VGG16 is slow in construction(i.e. 9 seconds),it could be speed up by this [PR](https://github.com/pytorch/vision/pull/377)
-  
+
   You don't need to build from source, modifying related files would be OK.
 
 - About the speed
@@ -204,7 +185,7 @@ This work builds on many excellent works, which include:
 - [Yusuke Niitani's ChainerCV](https://github.com/chainer/chainercv) (mainly)
 - [Ruotian Luo's pytorch-faster-rcnn](https://github.com/ruotianluo/pytorch-faster-rcnn) which based on [Xinlei Chen's tf-faster-rcnn](https://github.com/endernewton/tf-faster-rcnn)
 - [faster-rcnn.pytorch by Jianwei Yang and Jiasen Lu](https://github.com/jwyang/faster-rcnn.pytorch).It mainly refer to [longcw's faster_rcnn_pytorch](https://github.com/longcw/faster_rcnn_pytorch)
-- All the above Repositories have referred to [py-faster-rcnn by Ross Girshick and Sean Bell](https://github.com/rbgirshick/py-faster-rcnn)  either directly or indirectly. 
+- All the above Repositories have referred to [py-faster-rcnn by Ross Girshick and Sean Bell](https://github.com/rbgirshick/py-faster-rcnn)  either directly or indirectly.
 
 ## ^_^
 Licensed under MIT, see the LICENSE for more detail.
