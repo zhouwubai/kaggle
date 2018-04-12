@@ -1,1 +1,1 @@
-from model.utils.nms.non_maximum_suppression import non_maximum_suppression
+from .non_maximum_suppression import non_maximum_suppression

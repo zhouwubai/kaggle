@@ -47,7 +47,7 @@ class Config:
     # model
     load_path = None
 
-    caffe_pretrain = False  # use caffe pretrained model instead of torchvision
+    caffe_pretrain = True  # use caffe pretrained model instead of torchvision
     caffe_pretrain_path = ROOT + 'data/faster_rcnn/checkpoints/vgg16-caffe.pth'
 
     save_model = True
