@@ -1,6 +1,4 @@
-import os
-
-import ipdb
+from chainer import cuda  # to speed up
 import matplotlib
 from tqdm import tqdm
 
@@ -11,7 +9,6 @@ from torch.autograd import Variable
 from torch.utils import data as data_
 from faster_rcnn.ctorch.trainer import FasterRCNNTrainer
 from faster_rcnn.ctorch.utils import array_tool as at
-from faster_rcnn.ctorch.utils.vis_tool import visdom_bbox
 from faster_rcnn.ctorch.utils.eval_tool import eval_detection_voc
 
 matplotlib.use('agg')
@@ -65,7 +62,6 @@ def train(**kwargs):
         print('load pretrained model from %s' % opt.load_path)
 
     trainer.vis.text(dataset.db.label_names, win='labels')
-    best_map = 0
     for epoch in range(7):
         trainer.reset_meters()
         for ii, (img, bbox_, label_, scale, ori_img) in tqdm(enumerate(dataloader)):
@@ -73,39 +69,14 @@ def train(**kwargs):
             img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
             img, bbox, label = Variable(img), Variable(bbox), Variable(label)
             losses = trainer.train_step(img, bbox, label, scale)
-
-            if (ii + 1) % opt.plot_every == 0:
-                if os.path.exists(opt.debug_file):
-                    ipdb.set_trace()
-
-                # plot loss
-                trainer.vis.plot_many(trainer.get_meter_data())
-
-                # plot groud truth bboxes
-                ori_img_ = (img * 0.225 + 0.45).clamp(min=0, max=1) * 255
-                gt_img = visdom_bbox(at.tonumpy(ori_img_)[0],
-                                    at.tonumpy(bbox_)[0],
-                                    label_[0].numpy())
-                trainer.vis.img('gt_img', gt_img)
-
-                # plot predicti bboxes
-                _bboxes, _labels, _scores = trainer.faster_rcnn.predict(ori_img,visualize=True)
-                pred_img = visdom_bbox( at.tonumpy(ori_img[0]),
-                                        at.tonumpy(_bboxes[0]),
-                                        at.tonumpy(_labels[0]).reshape(-1),
-                                        at.tonumpy(_scores[0]))
-                trainer.vis.img('pred_img', pred_img)
-
-                # rpn confusion matrix(meter)
-                trainer.vis.text(str(trainer.rpn_cm.value().tolist()), win='rpn_cm')
-                # roi confusion matrix
-                trainer.vis.img('roi_cm', at.totensor(trainer.roi_cm.conf, False).float())
-        if epoch==4:
+            print("losses: ", losses)
+        if epoch == 4:
             trainer.faster_rcnn.scale_lr(opt.lr_decay)
 
     eval_result = eval(test_dataloader, faster_rcnn, test_num=1e100)
     print('eval_result')
     trainer.save(mAP=eval_result['map'])
+
 
 if __name__ == '__main__':
     import fire

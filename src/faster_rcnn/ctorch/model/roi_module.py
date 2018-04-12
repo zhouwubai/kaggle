@@ -17,11 +17,7 @@ Stream = namedtuple('Stream', ['ptr'])
 @cupy.util.memoize(for_each_device=True)
 def load_kernel(kernel_name, code, **kwargs):
     """
-    return:
-        `cupy.cuda.Function` def __call__(self, tuple grid, tuple block,
-                                          args, size_t shared_mem=0,
-                                          stream=None)
-        block=(N, 1, 1) means its a 1D indexing
+    https://github.com/cupy/cupy/blob/master/cupy/cuda/function.pyx
     """
     cp.cuda.runtime.free(0)
     code = Template(code).substitute(**kwargs)
