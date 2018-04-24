@@ -220,3 +220,101 @@ def box_refinement(box, gt_box):
     return np.stack([dy, dx, dh, dw], axis=1)
 
 
+def batch_slice(inputs, graph_fn, batch_size, names=None):
+    """Splits inputs into slices and feeds each slice to a copy of
+    the given computation graph and then combines the results. It allows
+    you to run a graph on a batch of inputs even if the graph is written
+    to support one instance only.
+
+    inputs: list of tensors. All must have the same first dimension length
+    graph_fn: A function that returns a TF tensor that is part of a graph.
+    batch_size: number of slices to divide the data into.
+    names: If provided, assigns names to the resulting tensors
+    """
+    if not isinstance(inputs, list):
+        inputs = [inputs]
+
+    outputs = []
+    for i in range(batch_size):
+        inputs_slice = [x[i] for x in inputs]
+        output_slice = graph_fn(*inputs_slice)
+        if not isinstance(output_slice, (tuple, list)):
+            output_slice = [output_slice]
+        outputs.append(output_slice)
+
+    # change outputs from a list of slices where each is a list
+    # of outputs to a list of outputs and each has a list of slices
+    outputs = list(zip(*outputs))
+
+    if names is None:
+        names = [None] * len(outputs)
+
+    result = [tf.stack(o, axis=0, name=n)
+              for o, n in zip(outputs, names)]
+    if len(result) == 1:
+        result = result[0]
+
+    return result
+
+
+############################################################
+#  Miscellenous Graph Functions
+############################################################
+
+def trim_zeros_graph(boxes, name=None):
+    """Often boxes are represented with matricies of shape [N, 4] and
+    are padded with zeros. This removes zero boxes.
+
+    boxes: [N, 4] matrix of boxes.
+    non_zeros: [N] a 1D boolean mask identifying the rows to keep
+    """
+    non_zeros = tf.cast(tf.reduce_sum(tf.abs(boxes), axis=1), tf.bool)
+    boxes = tf.boolean_mask(boxes, non_zeros, name=name)
+    return boxes, non_zeros
+
+
+def batch_pack_graph(x, counts, num_rows):
+    """Picks different number of values from each row
+    in x depending on the values in counts.
+    """
+    outputs = []
+    for i in range(num_rows):
+        outputs.append(x[i, :counts[i]])
+    return tf.concat(outputs, axis=0)
+
+
+def norm_boxes_graph(boxes, shape):
+    """Converts boxes from pixel coordinates to normalized coordinates.
+    boxes: [..., (y1, x1, y2, x2)] in pixel coordinates
+    shape: [..., (height, width)] in pixels
+
+    Note: In pixel coordinates (y2, x2) is outside the box. But in normalized
+    coordinates it is inside the box
+
+    Returns:
+        [..., (y1, x1, y2, x2)] in normalized coordinates
+    """
+    h, w = tf.split(tf.cast(shape, tf.float32), 2)
+    # why minus 1 ? one more is counted
+    scale = tf.concat([h, w, h, w], axis=-1) - tf.constant(1.0)
+    shift = tf.constant([0., 0., 1., 1.])
+    return tf.divide(boxes - shift, scale)
+
+
+def denorm_boxes_graph(boxes, shape):
+    """Converts boxes from normalized coordinates to pixel coordinates.
+    boxes: [..., (y1, x1, y2, x2)] in normalized coordinates
+    shape: [..., (height, width)] in pixels
+
+    Note: In pixel coordinates (y2, x2) is outside the box. But in
+    normalized coordinates it is inside the box.
+
+    Returns:
+        [..., (y1, x1, y2, x2)] in pixel coordinates
+    """
+    h, w = tf.split(tf.cast(shape, tf.float32), 2)
+    scale = tf.concat([h, w, h, w], axis=-1) - tf.constant(1.0)
+    shift = tf.constant([0., 0., 1., 1.])
+    return tf.cast(tf.round(tf.multiple(boxes, scale) + shift), tf.int32)
+
+

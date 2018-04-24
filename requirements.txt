@@ -33,7 +33,7 @@ imageio==2.1.2
 pyqt5
 moviepy
 tensorflow-gpu
-tensorflow==0.12.1
+tensorflow
 keras==1.2.1
 
 # extra
