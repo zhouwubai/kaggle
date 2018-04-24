@@ -625,17 +625,204 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes,
     return rois, roi_gt_class_ids, deltas, masks
 
 
+class DetectionTargetLayer(KE.Layer):
+    """Subsamples proposals and generates target box refinement, class_ids,
+    and masks for each.
+    Inputs:
+    proposals: [batch, N, (y1, x1, y2, x2)] in normalized coordinates. Might
+               be zero padded if there are not enough proposals.
+    gt_class_ids: [batch, MAX_GT_INSTANCES] Integer class IDs.
+    gt_boxes: [batch, MAX_GT_INSTANCES, (y1, x1, y2, x2)] in normalized
+              coordinates.
+    gt_masks: [batch, height, width, MAX_GT_INSTANCES] of boolean type
+    Returns: Target ROIs and corresponding class IDs, bounding box shifts,
+    and masks.
+    rois: [batch, TRAIN_ROIS_PER_IMAGE, (y1, x1, y2, x2)] in normalized
+          coordinates
+    target_class_ids: [batch, TRAIN_ROIS_PER_IMAGE]. Integer class IDs.
+    target_deltas: [batch, TRAIN_ROIS_PER_IMAGE, NUM_CLASSES,
+                    (dy, dx, log(dh), log(dw), class_id)]
+                   Class-specific bbox refinements.
+    target_mask: [batch, TRAIN_ROIS_PER_IMAGE, height, width)
+                 Masks cropped to bbox boundaries and resized to neural
+                 network output size.
+    Note: Returned arrays might be zero padded if not enough target ROIs.
+    """
+    def __init__(self, config, **kwargs):
+        super(DetectionTargetLayer, self).__init__(kwargs)
+        self.config = config
+
+    def call(self, inputs):
+        proposals = inputs[0]
+        gt_class_ids = inputs[1]
+        gt_boxes = inputs[2]
+        gt_masks = inputs[3]
+
+        # Slice the batch and run a graph for each slice
+        # TODO: Rename target_bbox to target_deltas for clarity
+        names = ["rois", "target_class_ids", "target_bbox", "target_mask"]
+        outputs = batch_slice([proposals, gt_class_ids, gt_boxes, gt_masks],
+                              lambda w, x, y, z: detection_targets_graph(
+                                  w, x, y, z, self.config),
+                              self.config.images_per_gpu, names=names)
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return [
+            (None, self.config.train_rois_per_image, 4),  # rois
+            (None, 1),  # class_ids
+            (None, self.config.train_rois_per_image, 4),  # deltas
+            (None, self.config.train_rois_per_image,
+             self.config.mask_shape[0], self.config.mask_shape[1])  # masks
+        ]
+
+    def compute_mask(self, inputs, mask=None):
+        return [None, None, None, None]
 
 
+############################################################
+#  Detection Layer
+############################################################
 
 
+def refine_detections_graph(rois, probs, deltas, window, config):
+    """Refine classified proposals and filter overlaps and return final
+    detections.
+    Inputs:
+        rois: [N, (y1, x1, y2, x2)] in normalized coordinates
+        probs: [N, num_classes]. Class probabilities.
+        deltas: [N, num_classes, (dy, dx, log(dh), log(dw))]. Class-specific
+                bounding box deltas.
+        window: (y1, x1, y2, x2) in image coordinates. The part of the image
+            that contains the image excluding the padding.
+    Returns detections shaped: [N, (y1, x1, y2, x2, class_id, score)] where
+        coordinates are normalized.
+    """
+    # class IDs per ROI
+    class_ids = tf.argmax(probs, axis=1, output_type=tf.int32)
+    indices = tf.stack([tf.range(probs.shape[0]), class_ids], axis=1)
+    class_scores = tf.gather_nd(probs, indices)
+    # class-specific bounding box deltas
+    deltas_specific = tf.gather_nd(deltas, indices)
+    refined_rois = apply_box_deltas_graph(
+        rois, deltas_specific * config.bbox_std_dev)
+    # clip boxes to image window
+    refined_rois = clip_boxes_graph(refined_rois, window)
+
+    # TODO: Filter out boxes with zero area
+
+    # Filter out backgrtound boxes
+    keep = tf.where(class_ids > 0)[:, 0]
+    if config.detection_min_confidence:
+        conf_keep =\
+            tf.where(class_scores >= config.detection_min_confidence)[:, 0]
+        keep = tf.sets.set_intersection(tf.expand_dims(keep, 0),
+                                        tf.expand_dims(conf_keep, 0))
+        keep = tf.sparse_tensor_to_dense(keep)[0]
+
+    # Apply per-class NMS
+    # 1. Prepare variables
+    pre_nms_class_ids = tf.gather(class_ids, keep)
+    pre_nms_scores = tf.gather(class_scores, keep)
+    pre_nms_rois = tf.gather(refined_rois, keep)
+    unique_pre_nms_class_ids = tf.unique(pre_nms_class_ids)[0]
+
+    def nms_keep_map(class_id):
+        """Apply Non-maximum Suppression on ROIs of the given class."""
+        # Indices of ROIs of the given class
+        ixs = tf.where(tf.equal(pre_nms_class_ids, class_id))[:, 0]
+        # Apply NMS
+        class_keep = tf.image.non_max_suppression(
+            tf.gather(pre_nms_rois, ixs),
+            tf.gather(pre_nms_scores, idx),
+            max_output_size=config.detection_max_instances,
+            iou_threshold=config.detection_nms_threshold)
+        # map indices
+        class_keep = tf.gather(keep, tf.gather(ixs, class_keep))
+        # Pad with -1 so returned tensors have the same shape
+        gap = config.detection_max_instances - tf.shape(class_keep)[0]
+        class_keep = tf.pad(class_keep, [(0, gap)],
+                            mode='CONSTANT', constant_values=-1)
+        # set shape to map_fn() can infer result shape
+        class_keep.set_shape([config.detection_max_instances])
+        return class_keep
+
+    # 2. Map over class IDs
+    nms_keep = tf.map_fn(nms_keep_map, unique_pre_nms_class_ids,
+                         dtype=tf.int64)
+    # 3. Merge results into on list, and remove -1 padding
+    nms_keep = tf.reshape(nms_keep, [-1])
+    nms_keep = tf.gather(nms_keep, tf.where(nms_keep > -1))[:, 0]
+    keep = tf.sets.set_intersection(tf.expand_dims(keep, 0),
+                                    tf.expand_dims(nms_keep, 0))
+    keep = tf.sparse_tensor_to_dense(keep)[0]
+
+    # keep top detections
+    roi_count = config.detection_max_instances
+    class_scores_keep = tf.gather(class_scores, keep)
+    num_keep = tf.minimum(tf.shape(class_scores_keep)[0], roi_count)
+    top_ids = tf.nn.top_k(class_scores_keep, k=num_keep, sorted=True)[1]
+    keep = tf.gather(keep, top_ids)
+
+    # Arrange outputs as [N, (y1, x1, y2, x2, class_id, score)]
+    # Coordinates are normalized
+    detections = tf.concat([
+        tf.gather(refined_rois, keep),
+        tf.to_float(tf.gather(class_ids, keep))[..., tf.newaxis],
+        tf.gather(class_scores, keep)[..., tf.newaxis]
+    ], axis=1)
+
+    # pad with zero if detection < detection_max_instances
+    gap = config.detection_max_instances - tf.shape(detections)[0]
+    detections = tf.pad(detections, [(0, gap), (0, 0)], "CONSTANT")
+    return detections
 
 
+class DetectionLayer(KE.Layer):
+    """Takes classified proposal boxes and their bounding box deltas and
+    return the final detection boxes
 
+    Inputs:
+        rois: [N, (y1, x1, y2, x2)]
+        mrcnn_class:
+        mrcnn_bbox:
+        image_meta:
 
+    Returns:
+        [batch, num_detections, (y1, x1, y2, x2, class_id, class_score)]
+        where coordinates are normalized
+    """
 
+    def __int__(self, config=None, **kwargs):
+        super(DetectionLayer, self).__init__(**kwargs)
+        self.config = config
 
+    def call(self, inputs):
+        rois = inputs[0]
+        mrcnn_class = inputs[1]
+        mrcnn_bbox = inputs[2]
+        image_meta = inputs[3]
 
+        # Get windows of images in normalized coordinates. Windows are the area
+        # in the image that excludes the padding.
+        # Use the shape of the first image in the batch to normalize the window
+        # because we know that all images get resized to the same size.
+        m = parse_image_meta_graph(image_meta)
+        image_shape = m["image_shape"][0]
+        window = norm_boxes_graph(m['window'], image_shape[:2])
+
+        # run detectionr efinement graph on each item in the batch
+        detections_batch = batch_slice(
+            [rois, mrcnn_class, mrcnn_bbox, window],
+            lambda x, y, w, z: refine_detections_graph(x, y, w, z,
+                                                       self.config),
+            self.config.images_per_gpu)
+
+        # Rehspae output [batch, num_detections,
+        # (y1, x1, y2, x2, class_score)] in normalized coordinates
+        return tf.reshape(detections_batch,
+                          [self.config.batch_size,
+                           self.config.detection_max_instances, 6])
 
 
 
