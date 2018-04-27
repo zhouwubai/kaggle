@@ -104,7 +104,6 @@ kenv/
 # data
 /data/
 constants.py
-*.ipynb
 *.csv
 
 # sync file
