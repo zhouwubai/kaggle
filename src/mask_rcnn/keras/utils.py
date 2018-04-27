@@ -23,8 +23,31 @@ COCO_MODEL_URL = "https://github.com/matterport/Mask_RCNN/releases/download/v2.0
 
 
 ############################################################
+#  Utility Functions
+############################################################
+
+
+def log(text, array=None):
+    """
+    Prints a text message. And, optionally, if a Numpy array is
+    provided it prints its shape, min and max value
+
+    Args:
+        text: str
+    """
+    if array is not None:
+        text = text.ljust(25)
+        text += ("shape: {:20} min: {:10.5f} max: {:10.5f} {}".format(
+            str(array.shape),
+            array.min() if array.size else "",
+            array.max() if array.size else "",
+            array.dtype))
+    print(text)
+
+############################################################
 #  Bounding Boxes
 ############################################################
+
 
 def extract_bboxes(mask):
     """Compute bounding boxes from masks.

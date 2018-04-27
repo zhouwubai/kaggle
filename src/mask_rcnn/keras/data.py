@@ -690,27 +690,3 @@ def data_generator(dataset, config, shuffle=True, augment=False, augmentation=No
                 raise
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
