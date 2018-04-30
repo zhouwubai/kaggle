@@ -14,7 +14,8 @@ Usage: import the module (see Jupyter notebooks for examples), or run from
     # Train a new model starting from pre-trained COCO weights
     python3 coco.py train --dataset=/path/to/coco/ --model=coco
 
-    # Train a new model starting from ImageNet weights. Also auto download COCO dataset
+    # Train a new model starting from ImageNet weights.
+    # Also auto download COCO dataset
     python3 coco.py train --dataset=/path/to/coco/ --model=imagenet --download=True
 
     # Continue training a model that you had trained earlier
@@ -33,7 +34,8 @@ import time
 import numpy as np
 import imgaug  # https://github.com/aleju/imgaug (pip3 install imageaug)
 
-# Download and install the Python COCO tools from https://github.com/waleedka/coco
+# Download and install the Python COCO tools from
+# https://github.com/waleedka/coco
 # That's a fork from the original https://github.com/pdollar/coco with a bug
 # fix for Python 3.
 # I submitted a pull request https://github.com/cocodataset/cocoapi/pull/50
