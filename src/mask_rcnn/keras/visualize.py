@@ -8,7 +8,6 @@ Written by Waleed Abdulla
 
 import os
 import sys
-import logging
 import random
 import itertools
 import colorsys
@@ -16,7 +15,7 @@ import colorsys
 import numpy as np
 from skimage.measure import find_contours
 import matplotlib.pyplot as plt
-from matplotlib import patches,  lines
+from matplotlib import patches, lines
 from matplotlib.patches import Polygon
 import IPython.display
 
@@ -25,7 +24,7 @@ ROOT_DIR = os.path.abspath("../")
 
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-import utils
+from mask_rcnn.keras import utils
 
 
 ############################################################
@@ -131,8 +130,8 @@ def display_instances(image, boxes, masks, class_ids, class_names,
         y1, x1, y2, x2 = boxes[i]
         if show_bbox:
             p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
-                                alpha=0.7, linestyle="dashed",
-                                edgecolor=color, facecolor='none')
+                                  alpha=0.7, linestyle="dashed",
+                                  edgecolor=color, facecolor='none')
             ax.add_patch(p)
 
         # Label
@@ -140,7 +139,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             class_id = class_ids[i]
             score = scores[i] if scores is not None else None
             label = class_names[class_id]
-            x = random.randint(x1, (x1 + x2) // 2)
+            # x = random.randint(x1, (x1 + x2) // 2)
             caption = "{} {:.3f}".format(label, score) if score else label
         else:
             caption = captions[i]
@@ -181,8 +180,7 @@ def display_differences(image,
         pred_box, pred_class_id, pred_score, pred_mask,
         iou_threshold=iou_threshold, score_threshold=score_threshold)
     # Ground truth = green. Predictions = red
-    colors = [(0, 1, 0, .8)] * len(gt_match)\
-           + [(1, 0, 0, 1)] * len(pred_match)
+    colors = [(0, 1, 0, .8)] * len(gt_match) + [(1, 0, 0, 1)] * len(pred_match)
     # Concatenate GT and predictions
     class_ids = np.concatenate([gt_class_id, pred_class_id])
     scores = np.concatenate([np.zeros([len(gt_match)]), pred_score])
@@ -193,9 +191,10 @@ def display_differences(image,
         pred_score[i],
         (overlaps[i, int(pred_match[i])]
             if pred_match[i] > -1 else overlaps[i].max()))
-            for i in range(len(pred_match))]
+        for i in range(len(pred_match))]
     # Set title if not provided
-    title = title or "Ground Truth and Detections\n GT=green, pred=red, captions: score/IoU"
+    title = title or ("Ground Truth and Detections\n"
+                      "GT=green, pred=red, captions: score/IoU")
     # Display
     display_instances(
         image,
@@ -206,7 +205,8 @@ def display_differences(image,
         title=title)
 
 
-def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10):
+def draw_rois(image, rois, refined_rois, mask,
+              class_ids, class_names, limit=10):
     """
     anchors: [n, (y1, x1, y2, x2)] list of anchors in image coordinates.
     proposals: [n, 4] the same anchors but refined to fit objects better.
@@ -242,10 +242,12 @@ def draw_rois(image, rois, refined_rois, mask, class_ids, class_names, limit=10)
         # Refined ROI
         if class_id:
             ry1, rx1, ry2, rx2 = refined_rois[id]
-            p = patches.Rectangle((rx1, ry1), rx2 - rx1, ry2 - ry1, linewidth=2,
+            p = patches.Rectangle((rx1, ry1), rx2 - rx1, ry2 - ry1,
+                                  linewidth=2,
                                   edgecolor=color, facecolor='none')
             ax.add_patch(p)
-            # Connect the top-left corners of the anchor and proposal for easy visualization
+            # Connect the top-left corners of the anchor and proposal
+            # for easy visualization
             ax.add_line(lines.Line2D([x1, rx1], [y1, ry1], color=color))
 
             # Label
@@ -291,7 +293,8 @@ def display_top_masks(image, mask, class_ids, class_names, limit=4):
     mask_area = [np.sum(mask[:, :, np.where(class_ids == i)[0]])
                  for i in unique_class_ids]
     top_ids = [v[0] for v in sorted(zip(unique_class_ids, mask_area),
-                                    key=lambda r: r[1], reverse=True) if v[1] > 0]
+                                    key=lambda r: r[1],
+                                    reverse=True) if v[1] > 0]
     # Generate images and titles
     for i in range(limit):
         class_id = top_ids[i] if i < len(top_ids) else -1
@@ -421,7 +424,8 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
         # Refined boxes
         if refined_boxes is not None and visibility > 0:
             ry1, rx1, ry2, rx2 = refined_boxes[i].astype(np.int32)
-            p = patches.Rectangle((rx1, ry1), rx2 - rx1, ry2 - ry1, linewidth=2,
+            p = patches.Rectangle((rx1, ry1), rx2 - rx1, ry2 - ry1,
+                                  linewidth=2,
                                   edgecolor=color, facecolor='none')
             ax.add_patch(p)
             # Connect the top-left corners of the anchor and proposal
@@ -434,7 +438,7 @@ def draw_boxes(image, boxes=None, refined_boxes=None,
             # If there are refined boxes, display captions on them
             if refined_boxes is not None:
                 y1, x1, y2, x2 = ry1, rx1, ry2, rx2
-            x = random.randint(x1, (x1 + x2) // 2)
+            # x = random.randint(x1, (x1 + x2) // 2)
             ax.text(x1, y1, caption, size=11, verticalalignment='top',
                     color='w', backgroundcolor="none",
                     bbox={'facecolor': color, 'alpha': 0.5,
@@ -485,7 +489,8 @@ def display_weight_stats(model):
             weight_name = weight_tensors[i].name
             # Detect problematic layers. Exclude biases of conv layers.
             alert = ""
-            if w.min() == w.max() and not (l.__class__.__name__ == "Conv2D" and i == 1):
+            if w.min() == w.max() and\
+                    not (l.__class__.__name__ == "Conv2D" and i == 1):
                 alert += "<span style='color:red'>*** dead?</span>"
             if np.abs(w.min()) > 1000 or np.abs(w.max()) > 1000:
                 alert += "<span style='color:red'>*** Overflow?</span>"

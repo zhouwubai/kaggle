@@ -1,62 +1,61 @@
-from pprint import pprint
 import numpy as np
 
 
 class Config(object):
 
-    name = None
-    gpu_count = 1
-    images_per_gpu = 2
+    NAME = None
+    GPU_COUNT = 1
+    IMAGES_PER_GPU = 2
 
     # train
-    steps_per_epoch = 1000
-    validation_steps = 50
+    STEPS_PER_EPOCH = 1000
+    VALIDATION_STEPS = 50
 
-    backbone = "resnet101"
-    backbone_strides = [4, 8, 16, 32, 64]
+    BACKBONE = "resnet101"
+    BACKBONE_STRIDES = [4, 8, 16, 32, 64]
 
-    num_classes = 1
+    NUM_CLASSES = 1
 
     # rpn
-    rpn_anchor_scales = [32, 64, 128, 256, 512]
-    rpn_anchor_ratios = [0.5, 1, 2]
-    rpn_anchor_stride = 1
-    rpn_nms_threshold = 0.7
-    rpn_train_anchor_per_image = 256
-    post_nms_rois_training = 2000
-    pos_nms_rois_inference = 1000
+    RPN_ANCHOR_SCALES = [32, 64, 128, 256, 512]
+    RPN_ANCHOR_RATIOS = [0.5, 1, 2]
+    RPN_ANCHOR_STRIDE = 1
+    RPN_NMS_THRESHOLD = 0.7
+    RPN_TRAIN_ANCHOR_PER_IMAGE = 256
+    POST_NMS_ROIS_TRAINING = 2000
+    POST_NMS_ROIS_INFERENCE = 1000
 
-    use_mini_mask = True
-    mini_mask_shape = (56, 56)
+    USE_MINI_MASK = True
+    MINI_MASK_SHAPE = (56, 56)
 
     # image scale
-    image_resize_mode = "square"
-    image_min_dim = 800
-    image_max_dim = 1024
-    image_min_scale = 0
-    mean_pixel = np.array([123.7, 116.8, 103.9])
+    IMAGE_RESIZE_MODE = "square"
+    IMAGE_MIN_DIM = 800
+    IMAGE_MAX_DIM = 1024
+    IMAGE_MIN_SCALE = 0
+    MEAN_PIXEL = np.array([123.7, 116.8, 103.9])
 
     # roi
-    train_rois_per_image = 200
-    roi_positive_ratio = 0.33
-    pool_size = 7
-    mask_pool_size = 14
-    mask_shape = [28, 28]
-    max_gt_instances = 100
+    TRAIN_ROIS_PER_IMAGE = 200
+    ROI_POSITIVE_RATIO = 0.33
+    POOL_SIZE = 7
+    MASK_POOL_SIZE = 14
+    MASK_SHAPE = [28, 28]
+    MAX_GT_INSTANCES = 100
 
     # predict
-    rpn_bbox_std_dev = np.array([0.1, 0.1, 0.2, 0.2])
-    bbox_std_dev = np.array([0.1, 0.1, 0.2, 0.2])
+    RPN_BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
+    BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
 
-    detection_min_confidence = 0.7
-    detection_nms_threshold = 0.3
+    DETECTION_MIN_CONFIDENCE = 0.7
+    DETECTION_NMS_THRESHOLD = 0.3
 
     # training
-    learning_rate = 0.001
-    learning_momentum = 0.9
-    weight_decay = 0.0001
+    LEARNING_RATE = 0.001
+    LEARNING_MOMENTUM = 0.9
+    WEIGHT_DECAY = 0.0001
 
-    loss_weights = {
+    LOSS_WEIGHTS = {
         "rpn_class_loss": 1.,
         "rpn_bbox_loss": 1.,
         "mrcnn_class_loss": 1.,
@@ -64,30 +63,31 @@ class Config(object):
         "mrcnn_mask_loss": 1.
     }
 
-    use_rpn_rois = True
-    train_bn = False
-    gradient_clip_norm = 5.0
+    USE_RPN_ROIS = True
+    TRAIN_BN = False
+    GRADIENT_CLIP_NORM = 5.0
 
-    batch_size = images_per_gpu * gpu_count
+    def __init__(self):
+        """Set values of computed attributes."""
+        # Effective batch size
+        self.BATCH_SIZE = self.IMAGES_PER_GPU * self.GPU_COUNT
 
-    img_h = image_max_dim
+        # Input image size
+        if self.IMAGE_RESIZE_MODE == "crop":
+            self.IMAGE_SHAPE = np.array([self.IMAGE_MIN_DIM,
+                                        self.IMAGE_MIN_DIM, 3])
+        else:
+            self.IMAGE_SHAPE = np.array([self.IMAGE_MAX_DIM,
+                                        self.IMAGE_MAX_DIM, 3])
 
-    image_shape = np.array([img_h, img_h, 3])
+        # Image meta data length
+        # See compose_image_meta() for details
+        self.IMAGE_META_SIZE = 1 + 3 + 3 + 4 + 1 + self.NUM_CLASSES
 
-    def _parse(self, kwargs):
-        state_dict = self._state_dict()
-        for k, v in kwargs.items():
-            if k not in state_dict:
-                raise ValueError('UnKnown Option: "--%s"' % k)
-            setattr(self, k, v)
-
-        print('======user config========')
-        pprint(self._state_dict())
-        print('==========end============')
-
-    def _state_dict(self):
-        return {k: getattr(self, k) for k, _ in Config.__dict__.items()
-                if not k.startswith('_')}
-
-
-opt = Config()
+    def display(self):
+        """Display Configuration values."""
+        print("\nConfigurations:")
+        for a in dir(self):
+            if not a.startswith("__") and not callable(getattr(self, a)):
+                print("{:30} {}".format(a, getattr(self, a)))
+        print("\n")

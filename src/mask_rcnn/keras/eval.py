@@ -3,7 +3,7 @@
 ############################################################
 
 import numpy as np
-import utils
+from mask_rcnn.keras import utils
 
 
 def trim_zeros(x):

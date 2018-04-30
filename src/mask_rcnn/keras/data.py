@@ -7,8 +7,8 @@ import skimage
 import logging
 import random
 
-import utils
-import nn
+from mask_rcnn.keras import utils
+from mask_rcnn.keras import nn
 
 
 class Dataset(object):

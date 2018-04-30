@@ -13,9 +13,9 @@ import keras.backend as K
 import keras.layers as KL
 import keras.models as KM
 
-import utils
-import data
-import nn
+from mask_rcnn.keras import utils
+from mask_rcnn.keras import data
+from mask_rcnn.keras import nn
 
 
 # Requires TensorFlow 1.3+ and Keras 2.0.8+.
@@ -36,7 +36,7 @@ class MaskRCNN():
         config: A sub-class of the config class
         model_dir: Directory to save training logs and trained weights
         """
-        assert mode in ["training" or "inference"]
+        assert mode in ["training", "inference"]
         self.mode = mode
         self.config = config
         self.model_dir = model_dir
@@ -52,7 +52,7 @@ class MaskRCNN():
         assert mode in ["training", "inference"]
 
         # Image size must be dividable by 2 multiple times
-        h, w = config.image_shape[:2]
+        h, w = config.IMAGE_SHAPE[:2]
         if h / 2**6 != int(h / 2**6 or w / 2**6 != int(w / 2**6)):
             raise Exception("Image size must be dividable by 2 at least "
                             "6 times to avoid franctions when downsampling "
@@ -61,7 +61,7 @@ class MaskRCNN():
         # Inputs
         input_image = KL.Input(
             shape=[None, None, 3], name="input_image")
-        input_image_meta = KL.Input(shape=[config.image_meta_size],
+        input_image_meta = KL.Input(shape=[config.IMAGE_META_SIZE],
                                     name="input_image_meta")
 
         if mode == "training":
@@ -85,14 +85,14 @@ class MaskRCNN():
 
             # GT Masks (zero padded)
             # [batch, height, width, MAX_GT_INSTANCES]
-            if config.use_mini_mask:
+            if config.USE_MINI_MASK:
                 input_gt_masks = KL.Input(
-                    shape=[config.mini_mask_shape[0],
-                           config.mini_mask_shape[1], None],
+                    shape=[config.MINI_MASK_SHAPE[0],
+                           config.MINI_MASK_SHAPE[1], None],
                     name="input_gt_masks", dtype=bool)
             else:
                 input_gt_masks = KL.Input(
-                    shape=[config.image_shape[0], config.image_shape[1], None],
+                    shape=[config.IMAGE_SHAPE[0], config.IMAGE_SHAPE[1], None],
                     name="input_gt_masks", dtype=bool)
         elif mode == "inference":
             # Anchors in normalized coordinates
@@ -102,9 +102,9 @@ class MaskRCNN():
         # bottom up layers
         # returns a list of the last layers of each stage 5. so we pick the 4th
         # item in the list
-        _, C2, C3, C4, C5 = nn.resnet_graph(input_image, config.backbone,
+        _, C2, C3, C4, C5 = nn.resnet_graph(input_image, config.BACKBONE,
                                             stage5=True,
-                                            train_bn=config.train_bn)
+                                            train_bn=config.TRAIN_BN)
 
         # top down layers
         # TODO: and assert to varify feature map sizes match what is in config
@@ -139,11 +139,11 @@ class MaskRCNN():
 
         # Anchors
         if mode == "training":
-            anchors = self.get_anchors(config.image_shape)
+            anchors = self.get_anchors(config.IMAGE_SHAPE)
             # duplicte across the batch dimension
             # TODO: can this be optimzed to avoid duplicating the anchors
             anchors = np.broadcast_to(anchors,
-                                      (config.batch_size,) + anchors.shape)
+                                      (config.BATCH_SIZE,) + anchors.shape)
             # A hack to get around keras's bad support for constants
             anchors = KL.Lambda(lambda x: tf.Variable(anchors),
                                 name="anchors")(input_image)
@@ -151,8 +151,8 @@ class MaskRCNN():
             anchors = input_anchors
 
         # RPN Model
-        rpn = nn.build_rpn_model(config.rpn_anchor_stride,
-                                 len(config.rpn_anchor_ratios), 256)
+        rpn = nn.build_rpn_model(config.RPN_ANCHOR_STRIDE,
+                                 len(config.RPN_ANCHOR_RATIOS), 256)
         # loop through pyramid layers
         layer_outputs = []  # list of lists
         for p in rpn_feature_maps:
@@ -172,11 +172,11 @@ class MaskRCNN():
         # generate proposals
         # proposals are [batch, N, (y1, x1, y2, x2)] in normalized coordinates
         # and zero padded
-        proposal_count = config.post_nms_rois_training if mode == "training"\
-            else config.post_nms_rois_inference
+        proposal_count = config.POST_NMS_ROIS_TRAINING if mode == "training"\
+            else config.POST_NMS_ROIS_INFERENCE
         rpn_rois = nn.ProposalLayer(
             proposal_count=proposal_count,
-            nms_threshold=config.rpn_nms_threshold,
+            nms_threshold=config.RPN_NMS_THRESHOLD,
             name="ROI",
             config=config)([rpn_class, rpn_bbox, anchors])
 
@@ -187,9 +187,9 @@ class MaskRCNN():
                 lambda x: utils.parse_image_meta_graph(x)["active_class_ids"]
             )(input_image_meta)
 
-            if not config.user_rpn_rois:
+            if not config.USER_RPN_ROIS:
                 # Ignore predicted ROIs and use ROIs provided as an input
-                input_rois = KL.Input(shape=[config.post_nms_rois_training, 4],
+                input_rois = KL.Input(shape=[config.POST_NMS_ROIS_TRAINING, 4],
                                       name="input_roi", dtype=np.int32)
 
                 # normalized coordinates
@@ -212,14 +212,14 @@ class MaskRCNN():
             mrcnn_class_logits, mrcnn_class, mrcnn_bbox =\
                 nn.fpn_classifier_graph(rois, mrcnn_feature_maps,
                                         input_image_meta,
-                                        config.pool_size,
-                                        config.num_classes,
+                                        config.POOL_SIZE,
+                                        config.NUM_CLASSES,
                                         train_bn=config.train_bn)
             mrcnn_mask = nn.build_fpn_mask_graph(rois, mrcnn_feature_maps,
                                                  input_image_meta,
-                                                 config.mask_pool_size,
-                                                 config.num_classes,
-                                                 train_bn=config.train_bn)
+                                                 config.MASK_POOL_SIZE,
+                                                 config.NUM_CLASSES,
+                                                 train_bn=config.TRAIN_BN)
 
             # TODO: clean up (use tf.identify if necessary)
             output_rois = KL.Lambda(lambda x: x * 1, name="output_rois")(rois)
@@ -257,7 +257,7 @@ class MaskRCNN():
             inputs = [input_image, input_image_meta,
                       input_rpn_match, input_rpn_bbox,
                       input_gt_class_ids, input_gt_boxes, input_gt_masks]
-            if not config.use_rpn_rois:
+            if not config.USE_RPN_ROIS:
                 inputs.append(input_rois)
             outputs = [rpn_class_logits, rpn_class, rpn_bbox,
                        mrcnn_class_logits, mrcnn_class, mrcnn_bbox, mrcnn_mask,
@@ -271,8 +271,8 @@ class MaskRCNN():
             mrcnn_class_logits, mrcnn_class, mrcnn_bbox =\
                 nn.fpn_classifier_graph(rpn_rois, mrcnn_feature_maps,
                                         input_image_meta,
-                                        config.pool_size, config.num_classes,
-                                        train_bn=config.train_bn)
+                                        config.POOL_SIZE, config.NUM_CLASSES,
+                                        train_bn=config.TRAIN_BN)
 
             # Dtections
             # output is normalized coordinates in shape
@@ -285,9 +285,9 @@ class MaskRCNN():
             mrcnn_mask = nn.build_fpn_mask_graph(detection_boxes,
                                                  mrcnn_feature_maps,
                                                  input_image_meta,
-                                                 config.mask_pool_size,
-                                                 config.num_classes,
-                                                 train_bn=config.train_bn)
+                                                 config.MASK_POOL_SIZE,
+                                                 config.NUM_CLASSES,
+                                                 train_bn=config.TRAIN_BN)
 
             model = KM.Model([input_image, input_image_meta, input_anchors],
                              [detections, mrcnn_class, mrcnn_bbox,
@@ -295,9 +295,9 @@ class MaskRCNN():
                              name='mask_rcnn')
 
         # Add multi-GPU support
-        if config.gpu_count > 1:
+        if config.GPU_COUNT > 1:
             from mrcnn.parallel_model import ParallelModel
-            model = ParallelModel(model, config.gpu_count)
+            model = ParallelModel(model, config.GPU_COUNT)
 
         return model
 
@@ -310,7 +310,7 @@ class MaskRCNN():
         """
         # Get directory names. Each directory corresponds to a model
         dir_names = next(os.walk(self.model_dir))[1]
-        key = self.config.name.lower()
+        key = self.config.NAME.lower()
         dir_names = filter(lambda f: f.startswith(key), dir_names)
         dir_names = sorted(dir_names)
         if not dir_names:

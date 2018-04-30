@@ -13,7 +13,7 @@ import keras.layers as KL
 import keras.engine as KE
 import keras.models as KM
 
-import utils
+from mask_rcnn.keras import utils
 
 
 class BatchNorm(KL.BatchNormalization):
@@ -106,7 +106,7 @@ def conv_block(input_tensor, kernel_size, filters, stage, block,
     shortcut = BatchNorm(name=bn_name_base + '1')(shortcut, training=train_bn)
 
     x = KL.Add()([x, shortcut])
-    x = KL.Activation('relu', names='res' + str(stage) + block + '_out')(x)
+    x = KL.Activation('relu', name='res' + str(stage) + block + '_out')(x)
     return x
 
 
@@ -239,7 +239,7 @@ class ProposalLayer(KE.Layer):
         scores = inputs[0][:, :, 1]
         # Box deltas [batch, num_rois, 4]
         deltas = inputs[1]
-        deltas = deltas * np.reshape(self.config.rpn_bbox_std_dev, [1, 1, 4])
+        deltas = deltas * np.reshape(self.config.RPN_BBOX_STD_DEV, [1, 1, 4])
         # anchors
         anchors = inputs[2]
 
@@ -249,19 +249,19 @@ class ProposalLayer(KE.Layer):
         ix = tf.nn.top_k(scores, pre_nms_limit, sorted=True,
                          name="top_anchor").indices
         scores = utils.batch_slice([scores, ix], lambda x, y: tf.gather(x, y),
-                                   self.config.images_per_gpu)
+                                   self.config.IMAGES_PER_GPU)
         deltas = utils.batch_slice([scores, ix], lambda x, y: tf.gather(x, y),
-                                   self.config.images_per_gpu)
+                                   self.config.IMAGES_PER_GPU)
         pre_nms_anchors = utils.batch_slice([anchors, ix],
                                             lambda a, x: tf.gather(a, x),
-                                            self.config.images_per_gpu,
+                                            self.config.IMAGES_PER_GPU,
                                             names=["pre_nms_anchors"])
 
         # apply deltas to get refined anchors
         # [batch, N, (y1, x1, y2, x2)]
         boxes = utils.batch_slice([pre_nms_anchors, deltas],
                                   lambda x, y: apply_box_deltas_graph(x, y),
-                                  self.config.images_per_gpu,
+                                  self.config.IMAGES_PER_GPU,
                                   names=["refined_anchors"])
 
         # clip to image boundaries. since we're in normalized coordinates
@@ -269,7 +269,7 @@ class ProposalLayer(KE.Layer):
         window = np.array([0, 0, 1, 1], dtype=np.float32)
         boxes = utils.batch_slice(boxes,
                                   lambda x: clip_boxes_graph(x, window),
-                                  self.config.images_per_gpu,
+                                  self.config.IMAGES_PER_GPU,
                                   names=["refined_anchors_clipped"])
 
         # Filter out small boxes
@@ -289,7 +289,7 @@ class ProposalLayer(KE.Layer):
             return proposals
 
         proposals = utils.batch_slice([boxes, scores], nms,
-                                      self.config.images_per_gpu)
+                                      self.config.IMAGES_PER_GPU)
         return proposals
 
     def compute_output_shape(self, input_shape):
@@ -304,7 +304,7 @@ def log2_graph(x):
     return tf.log(x) / tf.log(2.0)
 
 
-class PyramidROIAlign(KE.layer):
+class PyramidROIAlign(KE.Layer):
     """Implements ROI Pooling on multiple levels of the feature pyramid.
 
     Params:
@@ -505,13 +505,13 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes,
 
     # Subsample ROIs. Aim for 33% positive
     # Positive ROIs
-    positive_count = int(config.train_rois_per_image *
-                         config.roi_positive_ratio)
+    positive_count = int(config.TRAIN_ROIS_PER_IMAGE *
+                         config.ROI_POSITIVE_RATIO)
     positive_indices = tf.random_shuffle(positive_indices)[:positive_count]
     positive_count = tf.shape(positive_indices)[0]
 
     # negative ROIs. Add enough to maintain positive:negative ratio.
-    r = 1.0 / config.roi_positive_ratio
+    r = 1.0 / config.ROI_POSITIVE_RATIO
     negative_count = tf.cast(r * tf.cast(positive_count, tf.float32),
                              tf.int32) - positive_count
     negative_indices = tf.random_shuffle(negative_indices)[:negative_count]
@@ -528,7 +528,7 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes,
 
     # compute bbox refinement for positive ROIs
     deltas = box_refinement_graph(positive_rois, roi_gt_boxes)
-    deltas /= config.bbox_std_dev
+    deltas /= config.BBOX_STD_DEV
 
     # Assign positive ROIs to GT masks
     # Permute masks to [N, height, width, 1]
@@ -552,7 +552,7 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes,
         boxes = tf.concat([y1, x1, y2, x2], 1)
     box_ids = tf.range(0, tf.shape(roi_masks)[0])
     masks = tf.image.crop_and_resize(tf.cast(roi_masks, tf.float32),
-                                     boxes, box_ids, config.mask_shape)
+                                     boxes, box_ids, config.MASK_SHAPE)
     # Remove the extra dimension from masks.
     masks = tf.squeeze(masks, axis=3)
 
@@ -564,7 +564,7 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes,
     # are not used for negative ROIs with zeros
     rois = tf.concat([positive_rois, negative_rois], axis=0)
     N = tf.shape(negative_rois)[0]
-    P = tf.maximum(config.train_rois_per_image - tf.shape(rois)[0], 0)
+    P = tf.maximum(config.TRAIN_ROIS_PER_IMAGE - tf.shape(rois)[0], 0)
     rois = tf.pad(rois, [(0, P), (0, 0)])
     roi_gt_boxes = tf.pad(roi_gt_boxes, [(0, N + P), (0, 0)])
     roi_gt_class_ids = tf.pad(roi_gt_class_ids, [(0, N + P)])
@@ -614,16 +614,16 @@ class DetectionTargetLayer(KE.Layer):
             utils.batch_slice([proposals, gt_class_ids, gt_boxes, gt_masks],
                               lambda w, x, y, z: detection_targets_graph(
                                   w, x, y, z, self.config),
-                              self.config.images_per_gpu, names=names)
+                              self.config.IMAGES_PER_GPU, names=names)
         return outputs
 
     def compute_output_shape(self, input_shape):
         return [
-            (None, self.config.train_rois_per_image, 4),  # rois
+            (None, self.config.TRAIN_ROIS_PER_IMAGE, 4),  # rois
             (None, 1),  # class_ids
-            (None, self.config.train_rois_per_image, 4),  # deltas
-            (None, self.config.train_rois_per_image,
-             self.config.mask_shape[0], self.config.mask_shape[1])  # masks
+            (None, self.config.TRAIN_ROIS_PER_IMAGE, 4),  # deltas
+            (None, self.config.TRAIN_ROIS_PER_IMAGE,
+             self.config.MASK_SHAPE[0], self.config.MASK_SHAPE[1])  # masks
         ]
 
     def compute_mask(self, inputs, mask=None):
@@ -655,7 +655,7 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     # class-specific bounding box deltas
     deltas_specific = tf.gather_nd(deltas, indices)
     refined_rois = apply_box_deltas_graph(
-        rois, deltas_specific * config.bbox_std_dev)
+        rois, deltas_specific * config.BBOX_STD_DEV)
     # clip boxes to image window
     refined_rois = clip_boxes_graph(refined_rois, window)
 
@@ -663,9 +663,9 @@ def refine_detections_graph(rois, probs, deltas, window, config):
 
     # Filter out backgrtound boxes
     keep = tf.where(class_ids > 0)[:, 0]
-    if config.detection_min_confidence:
+    if config.DETECTION_MIN_CONFIDENCE:
         conf_keep =\
-            tf.where(class_scores >= config.detection_min_confidence)[:, 0]
+            tf.where(class_scores >= config.DETECTION_MIN_CONFIDENCE)[:, 0]
         keep = tf.sets.set_intersection(tf.expand_dims(keep, 0),
                                         tf.expand_dims(conf_keep, 0))
         keep = tf.sparse_tensor_to_dense(keep)[0]
@@ -685,16 +685,16 @@ def refine_detections_graph(rois, probs, deltas, window, config):
         class_keep = tf.image.non_max_suppression(
             tf.gather(pre_nms_rois, ixs),
             tf.gather(pre_nms_scores, ixs),
-            max_output_size=config.detection_max_instances,
-            iou_threshold=config.detection_nms_threshold)
+            max_output_size=config.DETECTION_MAX_INSTANCES,
+            iou_threshold=config.DETECTION_NMS_THRESHOLD)
         # map indices
         class_keep = tf.gather(keep, tf.gather(ixs, class_keep))
         # Pad with -1 so returned tensors have the same shape
-        gap = config.detection_max_instances - tf.shape(class_keep)[0]
+        gap = config.DETECTION_MAX_INSTANCES - tf.shape(class_keep)[0]
         class_keep = tf.pad(class_keep, [(0, gap)],
                             mode='CONSTANT', constant_values=-1)
         # set shape to map_fn() can infer result shape
-        class_keep.set_shape([config.detection_max_instances])
+        class_keep.set_shape([config.DETECTION_MAX_INSTANCES])
         return class_keep
 
     # 2. Map over class IDs
@@ -708,7 +708,7 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     keep = tf.sparse_tensor_to_dense(keep)[0]
 
     # keep top detections
-    roi_count = config.detection_max_instances
+    roi_count = config.DETECTION_MAX_INSTANCES
     class_scores_keep = tf.gather(class_scores, keep)
     num_keep = tf.minimum(tf.shape(class_scores_keep)[0], roi_count)
     top_ids = tf.nn.top_k(class_scores_keep, k=num_keep, sorted=True)[1]
@@ -723,7 +723,7 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     ], axis=1)
 
     # pad with zero if detection < detection_max_instances
-    gap = config.detection_max_instances - tf.shape(detections)[0]
+    gap = config.DETECTION_MAX_INSTANCES - tf.shape(detections)[0]
     detections = tf.pad(detections, [(0, gap), (0, 0)], "CONSTANT")
     return detections
 
@@ -766,16 +766,16 @@ class DetectionLayer(KE.Layer):
             [rois, mrcnn_class, mrcnn_bbox, window],
             lambda x, y, w, z: refine_detections_graph(x, y, w, z,
                                                        self.config),
-            self.config.images_per_gpu)
+            self.config.IMAGES_PER_GPU)
 
         # Rehspae output [batch, num_detections,
         # (y1, x1, y2, x2, class_score)] in normalized coordinates
         return tf.reshape(detections_batch,
-                          [self.config.batch_size,
-                           self.config.detection_max_instances, 6])
+                          [self.config.BATCH_SIZE,
+                           self.config.DETECTION_MAX_INSTANCES, 6])
 
     def compute_output_shape(self, input_shape):
-        return (None, self.config.detection_max_instances, 6)
+        return (None, self.config.DETECTION_MAX_INSTANCES, 6)
 
 
 ############################################################
@@ -1381,7 +1381,7 @@ def rpn_bbox_loss_graph(config, target_bbox, rpn_match, rpn_bbox):
     rpn_bbox = tf.gather_nd(rpn_bbox, indices)
     batch_counts = K.sum(K.cast(K.equal(rpn_match, 1), tf.int32), axis=1)
     target_bbox = batch_pack_graph(target_bbox, batch_counts,
-                                   config.images_per_gpu)
+                                   config.IMAGES_PER_GPU)
 
     # TODO: use smooth_l1_loss()
     diff = K.abs(target_bbox - rpn_bbox)
