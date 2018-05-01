@@ -199,6 +199,7 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
     """
     # Load image and mask
     image = dataset.load_image(image_id)
+    # mask has same size as image here
     mask, class_ids = dataset.load_mask(image_id)
     original_shape = image.shape
     image, window, scale, padding, crop = utils.resize_image(
@@ -270,6 +271,7 @@ def load_image_gt(dataset, config, image_id, augment=False, augmentation=None,
     active_class_ids[source_class_ids] = 1
 
     # Resize masks to smaller size to reduce memory usage
+    # size from bbox size -> MIN_MASK_SHAPE
     if use_mini_mask:
         mask = utils.minimize_mask(bbox, mask, config.MINI_MASK_SHAPE)
 
