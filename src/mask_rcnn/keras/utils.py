@@ -62,11 +62,11 @@ def compute_backbone_shapes(config, image_shape):
     Returns:
         [N, (height, width)]. Where N is the number of stages
     """
-    assert config.backbone in ["resnet50", "resnet101"]
+    assert config.BACKBONE in ["resnet50", "resnet101"]
     return np.array(
         [[int(math.ceil(image_shape[0] / stride)),
          int(math.ceil(image_shape[1] / stride))]
-         for stride in config.backbone_strides])
+         for stride in config.BACKBONE_STRIDES])
 
 ############################################################
 #  Bounding Boxes
@@ -128,8 +128,8 @@ def compute_overlaps(boxes1, boxes2):
     """
 
     # Areas of anchors and GT boxes
-    area1 = (boxes1[:, 2]) - boxes1[:, 0] * (boxes1[:, 3] - boxes1[:, 1])
-    area2 = (boxes2[:, 2]) - boxes2[:, 0] * (boxes2[:, 3] - boxes2[:, 1])
+    area1 = (boxes1[:, 2] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 1])
+    area2 = (boxes2[:, 2] - boxes2[:, 0]) * (boxes2[:, 3] - boxes2[:, 1])
 
     # Compute overlaps to generate matrix
     overlaps = np.zeros((boxes1.shape[0], boxes2.shape[0]))
@@ -472,11 +472,11 @@ def parse_image_meta_graph(meta):
 
 
 def mold_image(images, config):
-    return images.astype(np.float32) - config.mean_pixel
+    return images.astype(np.float32) - config.MEAN_PIXEL
 
 
-def unmodl_image(normalized_images, config):
-    return (normalized_images + config.mean_pixel).astype(np.uint8)
+def unmold_image(normalized_images, config):
+    return (normalized_images + config.MEAN_PIXEL).astype(np.uint8)
 
 
 def resize_image(image, min_dim=None, max_dim=None,
