@@ -250,7 +250,7 @@ class ProposalLayer(KE.Layer):
                          name="top_anchor").indices
         scores = utils.batch_slice([scores, ix], lambda x, y: tf.gather(x, y),
                                    self.config.IMAGES_PER_GPU)
-        deltas = utils.batch_slice([scores, ix], lambda x, y: tf.gather(x, y),
+        deltas = utils.batch_slice([deltas, ix], lambda x, y: tf.gather(x, y),
                                    self.config.IMAGES_PER_GPU)
         pre_nms_anchors = utils.batch_slice([anchors, ix],
                                             lambda a, x: tf.gather(a, x),

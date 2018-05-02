@@ -187,7 +187,7 @@ class MaskRCNN():
                 lambda x: utils.parse_image_meta_graph(x)["active_class_ids"]
             )(input_image_meta)
 
-            if not config.USER_RPN_ROIS:
+            if not config.USE_RPN_ROIS:
                 # Ignore predicted ROIs and use ROIs provided as an input
                 input_rois = KL.Input(shape=[config.POST_NMS_ROIS_TRAINING, 4],
                                       name="input_roi", dtype=np.int32)
@@ -214,7 +214,7 @@ class MaskRCNN():
                                         input_image_meta,
                                         config.POOL_SIZE,
                                         config.NUM_CLASSES,
-                                        train_bn=config.train_bn)
+                                        train_bn=config.TRAIN_BN)
             mrcnn_mask = nn.build_fpn_mask_graph(rois, mrcnn_feature_maps,
                                                  input_image_meta,
                                                  config.MASK_POOL_SIZE,
