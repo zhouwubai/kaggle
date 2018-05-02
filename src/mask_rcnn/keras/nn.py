@@ -888,6 +888,8 @@ def fpn_classifier_graph(rois, feature_maps, image_meta,
                            name='mrcnn_class_bn2')(x, training=train_bn)
     x = KL.Activation('relu')(x)
 
+    # first conv using kernel (pool_size, pool_size) which makes
+    # size of dimension 2, 3 become 1
     shared = KL.Lambda(lambda x: K.squeeze(K.squeeze(x, 3), 2),
                        name="pool_squeeze")(x)
 
