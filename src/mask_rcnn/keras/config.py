@@ -47,6 +47,7 @@ class Config(object):
     RPN_BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
     BBOX_STD_DEV = np.array([0.1, 0.1, 0.2, 0.2])
 
+    DETECTION_MAX_INSTANCES = 100
     DETECTION_MIN_CONFIDENCE = 0.7
     DETECTION_NMS_THRESHOLD = 0.3
 

@@ -175,8 +175,8 @@ def apply_box_deltas_graph(boxes, deltas):
     boxes: [N, (y1, x1, y2, x2)] boxes to update
     deltas: [N, (dy, dx, log(dh), log(dw))] refinements to apply
     """
-    height = boxes[: 2] - boxes[:, 0]
-    width = boxes[: 3] - boxes[:, 1]
+    height = boxes[:, 2] - boxes[:, 0]
+    width = boxes[:, 3] - boxes[:, 1]
     center_y = boxes[:, 0] + 0.5 * height
     center_x = boxes[:, 1] + 0.5 * width
 
@@ -337,8 +337,8 @@ class PyramidROIAlign(KE.Layer):
         image_meta = inputs[1]
 
         # Feature Maps. List of feature maps from different level of the
-        # feature pyramid. Each is is [batch, height, width, channels]
-        feature_maps = inputs[2]
+        # feature pyramid. Each one is [batch, height, width, channels]
+        feature_maps = inputs[2:]
 
         # Assign each ROI to a level in the pyramid based on the ROI area
         y1, x1, y2, x2 = tf.split(boxes, 4, axis=2)
@@ -363,7 +363,7 @@ class PyramidROIAlign(KE.Layer):
             level_boxes = tf.gather_nd(boxes, ix)
 
             # box indices for crop_and_resize
-            box_indices = tf.cast(ix[:, 0])
+            box_indices = tf.cast(ix[:, 0], tf.int32)
             box_to_level.append(ix)
 
             # stop gradient propogation to ROI proposals
@@ -398,7 +398,7 @@ class PyramidROIAlign(KE.Layer):
         return pooled
 
     def compute_output_shape(self, input_shape):
-        return input_shape[0][:2] + self.pool_shape + (input_shape[2][-1])
+        return input_shape[0][:2] + self.pool_shape + (input_shape[2][-1], )
 
 
 ############################################################
@@ -743,7 +743,7 @@ class DetectionLayer(KE.Layer):
         where coordinates are normalized
     """
 
-    def __int__(self, config=None, **kwargs):
+    def __init__(self, config=None, **kwargs):
         super(DetectionLayer, self).__init__(**kwargs)
         self.config = config
 
@@ -941,8 +941,8 @@ def build_fpn_mask_graph(rois, feature_maps, image_meta,
 
     x = KL.TimeDistributed(KL.Conv2D(256, (3, 3), padding="same"),
                            name="mrcnn_mask_conv2")(x)
-    x = KL.TimeDistribbuted(BatchNorm(),
-                            name="mrcnn_mask_bn2")(x, training=train_bn)
+    x = KL.TimeDistributed(BatchNorm(),
+                           name="mrcnn_mask_bn2")(x, training=train_bn)
     x = KL.Activation('relu')(x)
 
     x = KL.TimeDistributed(KL.Conv2D(256, (3, 3), padding="same"),
