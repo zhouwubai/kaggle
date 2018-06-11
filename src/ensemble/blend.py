@@ -1,4 +1,7 @@
-"""Kaggle competition: Predicting a Biological Response.
+"""
+https://github.com/emanuele/kaggle_pbr
+
+Kaggle competition: Predicting a Biological Response.
 Blending {RandomForests, ExtraTrees, GradientBoosting} + stretching to
 [0,1]. The blending scheme is related to the idea Jose H. Solorzano
 presented here:
@@ -56,7 +59,7 @@ def load():
 def logloss(attempt, actual, epsilon=1.0e-15):
     """Logloss, i.e. the score of the bioresponse competition.
     """
-    attempt = np.clip(attempt, epsilon, 1.0-epsilon)
+    attempt = np.clip(attempt, epsilon, 1.0 - epsilon)
     return - np.mean(actual * np.log(attempt) +
                      (1.0 - actual) * np.log(1.0 - attempt))
 
@@ -114,6 +117,6 @@ if __name__ == '__main__':
     y_submission = (y_submission - y_submission.min()) / (y_submission.max() - y_submission.min())
 
     print "Saving Results."
-    tmp = np.vstack([range(1, len(y_submission)+1), y_submission]).T
+    tmp = np.vstack([range(1, len(y_submission) + 1), y_submission]).T
     np.savetxt(fname='submission.csv', X=tmp, fmt='%d,%0.9f',
                header='MoleculeId,PredictedProbability', comments='')
