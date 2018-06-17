@@ -11,7 +11,7 @@ def get_sample_indices_by_relevance(dfTrain, additional_key=None):
     """
         return a dict with
         key: (additional_key, median_relevance)
-        val: list of sample indices
+        val: list of sample indices in each group
     """
     dfTrain["sample_index"] = range(dfTrain.shape[0])
     group_key = ["median_relevance"]

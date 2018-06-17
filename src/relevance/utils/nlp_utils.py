@@ -5,6 +5,7 @@ from relevance.features.replacer import CsvWordReplacer
 from nltk import pos_tag
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from relevance.config import config
+from relevance.constants import token_pattern, replace_dict
 
 # stop words
 stopwords = nltk.corpus.stopwords.words("english")
@@ -25,8 +26,19 @@ def stem_tokens(tokens, stemmer):
     return stemmed
 
 
-# pos tag
-token_pattern = r"(?u)\b\w\w+\b"
+# Pre-process data
+def preprocess_data(line,
+                    token_pattern=token_pattern,
+                    exclude_stopword=config.cooccurrence_word_exclude_stopword,
+                    encode_digit=False):
+    token_pattern = re.compile(token_pattern, flags=re.UNICODE | re.LOCALE)
+    # tokenize
+    tokens = [x.lower() for x in token_pattern.findall(line)]
+    # stem
+    tokens_stemmed = stem_tokens(tokens, english_stemmer)
+    if exclude_stopword:
+        tokens_stemmed = [x for x in tokens_stemmed if x not in stopwords]
+    return tokens_stemmed
 
 
 def pos_tag_text(line,
@@ -57,7 +69,6 @@ class StemmedTfidfVectorizer(TfidfVectorizer):
         return lambda doc: (english_stemmer.stem(w) for w in analyzer(doc))
 
 
-token_pattern = r"(?u)\b\w\w+\b"
 tfidf__norm = "l2"
 tfidf__max_df = 0.75
 tfidf__min_df = 3
@@ -85,7 +96,6 @@ class StemmedCountVectorizer(CountVectorizer):
         return lambda doc: (english_stemmer.stem(w) for w in analyzer(doc))
 
 
-token_pattern = r"(?u)\b\w\w+\b"
 bow__max_df = 0.75
 bow__min_df = 3
 
@@ -107,47 +117,6 @@ def getBOW(token_pattern=token_pattern,
 # Text Clean ##
 # synonym replacer
 replacer = CsvWordReplacer('%s/synonyms.csv' % config.data_folder)
-# other replace dict
-# such dict is found by exploring the training data
-replace_dict = {
-    "nutri system": "nutrisystem",
-    "soda stream": "sodastream",
-    "playstation's": "ps",
-    "playstations": "ps",
-    "playstation": "ps",
-    "(ps 2)": "ps2",
-    "(ps 3)": "ps3",
-    "(ps 4)": "ps4",
-    "ps 2": "ps2",
-    "ps 3": "ps3",
-    "ps 4": "ps4",
-    "coffeemaker": "coffee maker",
-    "k-cups": "k cup",
-    "k-cup": "k cup",
-    "4-ounce": "4 ounce",
-    "8-ounce": "8 ounce",
-    "12-ounce": "12 ounce",
-    "ounce": "oz",
-    "button-down": "button down",
-    "doctor who": "dr who",
-    "2-drawer": "2 drawer",
-    "3-drawer": "3 drawer",
-    "in-drawer": "in drawer",
-    "hardisk": "hard drive",
-    "hard disk": "hard drive",
-    "harley-davidson": "harley davidson",
-    "harleydavidson": "harley davidson",
-    "e-reader": "ereader",
-    "levi strauss": "levi",
-    "levis": "levi",
-    "mac book": "macbook",
-    "micro-usb": "micro usb",
-    "screen protector for samsung": "screen protector samsung",
-    "video games": "videogames",
-    "game pad": "gamepad",
-    "western digital": "wd",
-    "eau de toilette": "perfume",
-}
 
 
 def clean_text(line, drop_html_flag=False):
