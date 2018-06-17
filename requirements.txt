@@ -23,6 +23,7 @@ opencv-python
 scikit-learn
 scikit-image
 
+cPickle
 h5py
 eventlet
 flask-socketio

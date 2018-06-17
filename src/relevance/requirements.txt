@@ -1,6 +1,7 @@
 # preprocess
 beautifulsoup4
-replacer
 
 # nlp
 nltk
+
+cPickle

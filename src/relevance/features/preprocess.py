@@ -37,8 +37,8 @@ for i, q in enumerate(np.unique(dfTrain["query"]), start=1):
     qid_dict[q] = i
 
 # insert query id
-dfTrain["qid"] = map(lambda q: qid_dict[q], dfTrain["query"])
-dfTest["qid"] = map(lambda q: qid_dict[q], dfTest["query"])
+dfTrain["qid"] = list(map(lambda q: qid_dict[q], dfTrain["query"]))
+dfTest["qid"] = list(map(lambda q: qid_dict[q], dfTest["query"]))
 
 # clean text
 clean = lambda line: clean_text(line, drop_html_flag=config.drop_html_flag)

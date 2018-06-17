@@ -1,7 +1,7 @@
 import re
 import nltk
 from bs4 import BeautifulSoup
-from replacer import CsvWordReplacer
+from relevance.features.replacer import CsvWordReplacer
 from nltk import pos_tag
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from relevance.config import config
@@ -179,4 +179,4 @@ def clean_text(line, drop_html_flag=False):
 
 
 def drop_html(html):
-    return BeautifulSoup(html).get_text(separator=" ")
+    return BeautifulSoup(html, "html5lib").get_text(separator=" ")
