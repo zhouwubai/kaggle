@@ -1,38 +1,27 @@
 
 """
 __file__
-    
+
     combine_feat_[LSA_and_stats_feat_Jun09]_[Low].py
 
 __description__
 
     This file generates one combination of feature set (Low).
 
-__author__
-
-    Chenglong Chen < c.chenglong@gmail.com >
-
 """
 
-import sys
-sys.path.append("../")
-from param_config import config
-from gen_info import gen_info
-from combine_feat import combine_feat, SimpleTransform
+from relevance.config import config
+from relevance.utils.gen_info import gen_info
+from relevance.features.combine_feat import combine_feat, SimpleTransform
 
-            
+
 if __name__ == "__main__":
 
     feat_names = [
-
-        ##############
-        ## Query id ##
-        ##############
+        # Query id
         ("qid", SimpleTransform()),
 
-        ################
-        ## Word count ##
-        ################
+        # Word count
         ('count_of_query_unigram', SimpleTransform(config.count_feat_transform)),
         ('count_of_unique_query_unigram', SimpleTransform(config.count_feat_transform)),
         ('ratio_of_unique_query_unigram', SimpleTransform()),
@@ -350,7 +339,7 @@ if __name__ == "__main__":
         # ("description_bigram_dice_dist_stats_feat_by_query_relevance", SimpleTransform()),
         # ("description_trigram_dice_dist_stats_feat_by_relevance", SimpleTransform()),
         # ("description_trigram_dice_dist_stats_feat_by_query_relevance", SimpleTransform()),
-        
+
         ############
         ## TF-IDF ##
         ############

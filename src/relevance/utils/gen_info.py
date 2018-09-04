@@ -34,7 +34,8 @@ def gen_info(feat_path_name):
     dfTest_original = pd.read_csv(config.original_test_data_path).fillna("")
     # insert fake label for test
     dfTest_original["median_relevance"] = np.ones((dfTest_original.shape[0]))
-    dfTest_original["relevance_variance"] = np.zeros((dfTest_original.shape[0]))
+    dfTest_original["relevance_variance"] =\
+        np.zeros((dfTest_original.shape[0]))
     # change it to zero-based for classification
     Y = dfTrain_original["median_relevance"].values - 1
 
@@ -63,8 +64,10 @@ def gen_info(feat_path_name):
             weight = (1 + np.power(((max_var - var**raise_to) / max_var),
                                    1)) / 2.
             # weight = (max_var - var**raise_to) / max_var
-            np.savetxt("%s/train.feat.weight" % path, weight[trainInd], fmt="%.6f")
-            np.savetxt("%s/valid.feat.weight" % path, weight[validInd], fmt="%.6f")
+            np.savetxt("%s/train.feat.weight" % path,
+                       weight[trainInd], fmt="%.6f")
+            np.savetxt("%s/valid.feat.weight" % path,
+                       weight[validInd], fmt="%.6f")
 
             # get and dump group info
             np.savetxt("%s/train.feat.group" % path, [len(trainInd)], fmt="%d")
